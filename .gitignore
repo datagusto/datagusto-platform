@@ -1,0 +1,9 @@
+.env
+.DS_Store
+.venv
+.cursor/mcp.json
+**/dist/
+**/build/
+./volumes/
+./docker/volumes/db/data
+.cursor
