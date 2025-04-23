@@ -18,7 +18,7 @@ datagusto provides step-by-step visibility into why AI agents fail — not just 
 
 ### STEP 1: Setup Langfuse project for your AI agents
 Datagusto integrates with your LLM/agent observability platforms, such as Langfuse, to trace, diagnose and prevent AI agents unpredictability.
-Currently, we are only supporting Langfuse. If you use other observability platforms, please share it with us via <a href="https://datagusto.featurebase.app/"><b>Feedback Potal</b></a>!
+Currently, we are only supporting Langfuse. If you use other observability platforms, please share it with us via <a href="https://datagusto.featurebase.app/"><b>Feedback Portal</b></a>!
 
 Before starting to set up datagusto, you need to set up a Langfuse project for your AI agents.
 
@@ -28,7 +28,7 @@ According to [the Langfuse's guide](https://langfuse.com/docs/get-started), crea
 <b>(2) Connect your AI agent</b>
 Issue API credentials in the project settings and connect with your AI agents to Langfuse.
 
-There are Langfuse guides for some AI agent framewors:
+There are Langfuse guides for some AI agent frameworks:
 - [LangChain](https://langfuse.com/docs/integrations/langchain/tracing)
 - [LangGraph](https://langfuse.com/docs/integrations/langchain/example-python-langgraph)
 - [Mastra](https://langfuse.com/docs/integrations/mastra)
@@ -68,7 +68,7 @@ This guide walk you through the steps to run datagusto platform locally using do
 4. Open http://localhost:3000 in your browser to access the datagusto UI.
 
 
-### STEP 3: Integrating AI agents with datagusto SDK
+### STEP 3: Integrating AI agents with datagusto
 This guide helps you to integrate your AI agent's trace information with datagusto.
 
 <b>(1) Add your AI agent information</b>
