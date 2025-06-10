@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { OrganizationSwitcher } from "@/components/organization-switcher";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -19,6 +20,11 @@ export function Sidebar() {
       {/* Logo/Brand */}
       <div className="p-6 border-b border-gray-200">
         <h1 className="text-xl font-bold text-gray-900">datagusto</h1>
+      </div>
+
+      {/* Organization Switcher */}
+      <div className="p-4 border-b border-gray-200">
+        <OrganizationSwitcher />
       </div>
 
       {/* Navigation */}

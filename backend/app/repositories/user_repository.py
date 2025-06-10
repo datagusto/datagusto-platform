@@ -62,17 +62,19 @@ class UserRepository:
         """
         return self.db.query(UserModel).filter(UserModel.email == email).first()
     
-    async def update_user(self, user_id: str, user_data: Dict[str, Any]) -> Optional[UserModel]:
+    async def update_user(self, user_id, user_data: Dict[str, Any]) -> Optional[UserModel]:
         """
         Update a user.
         
         Args:
-            user_id: User ID string
+            user_id: User ID (string or UUID)
             user_data: User data to update
             
         Returns:
             Updated user or None if not found
         """
+        if isinstance(user_id, UUID):
+            user_id = str(user_id)
         user = await self.get_user_by_id(user_id)
         if not user:
             return None

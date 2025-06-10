@@ -21,6 +21,7 @@ dependencies = [
     "bcrypt>=4.3.0",
     "requests>=2.32.3",
     "langchain-openai>=0.3.14",
+    "pytest-asyncio>=1.0.0",
 ]
 
 [build-system]
