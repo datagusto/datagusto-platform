@@ -1,5 +1,6 @@
 from typing import Dict, Any, Optional, List
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from app.models.user import User as UserModel
 
@@ -37,12 +38,17 @@ class UserRepository:
         Get a user by ID.
         
         Args:
-            user_id: User ID
+            user_id: User ID string
             
         Returns:
             User or None if not found
         """
-        return self.db.query(UserModel).filter(UserModel.id == user_id).first()
+        # Convert string to UUID for database query
+        try:
+            uuid_id = UUID(user_id)
+            return self.db.query(UserModel).filter(UserModel.id == uuid_id).first()
+        except ValueError:
+            return None
     
     async def get_user_by_email(self, email: str) -> Optional[UserModel]:
         """
@@ -61,7 +67,7 @@ class UserRepository:
         Update a user.
         
         Args:
-            user_id: User ID
+            user_id: User ID string
             user_data: User data to update
             
         Returns:
@@ -83,7 +89,7 @@ class UserRepository:
         Delete a user.
         
         Args:
-            user_id: User ID
+            user_id: User ID string
             
         Returns:
             True if deleted, False if not found

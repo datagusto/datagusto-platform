@@ -1,137 +1,65 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  getToken, 
-  isAuthenticated as checkAuthentication, 
-  login, 
-  logout, 
-  fetchOrganizationId, 
-  fetchCurrentUser,
-  getStoredUserInfo,
-  UserInfo
-} from '@/utils/auth';
-import type { LoginCredentials, AuthResponse } from '@/utils/auth';
-import { toast } from "sonner";
+import { authService } from '@/services/auth-service';
+import type { User, LoginCredentials, RegisterData } from '@/types/auth';
 
 interface AuthContextType {
-  isAuthenticated: boolean;
-  token: string | null;
-  user: UserInfo | null;
-  login: (credentials: LoginCredentials) => Promise<AuthResponse>;
-  logout: () => void;
+  user: User | null;
   loading: boolean;
-  refreshUserInfo: () => Promise<UserInfo | null>;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  register: (userData: RegisterData) => Promise<void>;
+  logout: () => void;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<UserInfo | null>(null);
 
-  // ユーザー情報を更新する関数
-  const refreshUserInfo = async () => {
-    const userInfo = await fetchCurrentUser();
-    setUser(userInfo);
-    return userInfo;
-  };
-
-  // ログイン状態の初期化
+  // Initialize auth state on mount
   useEffect(() => {
-    const initAuth = async () => {
-      const currentToken = getToken();
-      const authState = checkAuthentication();
-      
-      setToken(currentToken);
-      setIsAuthenticated(authState);
-      
-      // キャッシュからユーザー情報を取得
-      const cachedUserInfo = getStoredUserInfo();
-      if (cachedUserInfo) {
-        setUser(cachedUserInfo);
-      }
-      
-      // すでに認証済みの場合、組織IDとユーザー情報を取得する
-      if (authState) {
-        const hasOrganization = await fetchOrganizationId();
-        
-        // ユーザー情報を取得
-        const userInfo = await fetchCurrentUser();
-        if (userInfo) {
-          setUser(userInfo);
+    const initializeAuth = async () => {
+      try {
+        if (authService.isAuthenticated()) {
+          const userData = await authService.getCurrentUser();
+          setUser(userData);
         }
-        
-        // 組織が見つからない場合、ログアウトして再ログインを促す
-        if (!hasOrganization) {
-          console.warn('No organization found for user. Logging out...');
-          logout();
-          setToken(null);
-          setIsAuthenticated(false);
-          setUser(null);
-          // ユーザーがすでにページを見ている場合のために通知
-          if (typeof window !== 'undefined') {
-            toast.error("組織情報が見つかりません。再度ログインしてください。");
-          }
-        }
+      } catch (error) {
+        // Token might be invalid, clear it
+        authService.logout();
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
-    initAuth();
+    initializeAuth();
   }, []);
 
-  const handleLogin = async (credentials: LoginCredentials) => {
-    setLoading(true);
-    try {
-      const response = await login(credentials);
-      setToken(response.access_token);
-      setIsAuthenticated(true);
-      
-      // ログイン直後に組織情報を取得する
-      const hasOrganization = await fetchOrganizationId();
-      
-      // ユーザー情報を取得
-      const userInfo = await fetchCurrentUser();
-      if (userInfo) {
-        setUser(userInfo);
-      }
-      
-      // 組織が見つからない場合、エラーを表示
-      if (!hasOrganization) {
-        toast.error("組織情報が見つかりません。システム管理者に連絡してください。");
-        logout();
-        setToken(null);
-        setIsAuthenticated(false);
-        setUser(null);
-        throw new Error('組織情報が見つかりません');
-      }
-      
-      // Return the response so the component can decide what to do next
-      return response;
-    } finally {
-      setLoading(false);
-    }
+  const login = async (credentials: LoginCredentials) => {
+    const tokenResponse = await authService.login(credentials);
+    const userData = await authService.getCurrentUser();
+    setUser(userData);
   };
 
-  const handleLogout = () => {
-    logout();
-    setToken(null);
-    setIsAuthenticated(false);
+  const register = async (userData: RegisterData) => {
+    await authService.register(userData);
+  };
+
+  const logout = () => {
+    authService.logout();
     setUser(null);
   };
 
-  const value = {
-    isAuthenticated,
-    token,
+  const value: AuthContextType = {
     user,
-    login: handleLogin,
-    logout: handleLogout,
     loading,
-    refreshUserInfo
+    login,
+    register,
+    logout,
+    isAuthenticated: !!user,
   };
 
   return (
@@ -147,4 +75,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-} 
+}
