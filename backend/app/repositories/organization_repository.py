@@ -14,8 +14,7 @@ class OrganizationRepository:
         """Create a new organization."""
         organization = Organization(**org_data)
         self.db.add(organization)
-        self.db.commit()
-        self.db.refresh(organization)
+        self.db.flush()  # Get ID without committing
         return organization
 
     async def get_organization_by_id(self, org_id: uuid.UUID) -> Optional[Organization]:
@@ -50,8 +49,7 @@ class OrganizationRepository:
         if organization:
             for key, value in update_data.items():
                 setattr(organization, key, value)
-            self.db.commit()
-            self.db.refresh(organization)
+            self.db.flush()
         
         return organization
 
@@ -63,7 +61,14 @@ class OrganizationRepository:
         
         if organization:
             organization.is_active = False
-            self.db.commit()
             return True
         
         return False
+    
+    def commit(self):
+        """Commit the transaction."""
+        self.db.commit()
+    
+    def rollback(self):
+        """Rollback the transaction."""
+        self.db.rollback()

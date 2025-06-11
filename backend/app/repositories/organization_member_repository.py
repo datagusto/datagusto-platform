@@ -14,8 +14,7 @@ class OrganizationMemberRepository:
         """Create a new organization membership."""
         membership = OrganizationMember(**membership_data)
         self.db.add(membership)
-        self.db.commit()
-        self.db.refresh(membership)
+        self.db.flush()  # Get ID without committing
         return membership
 
     async def get_membership(self, user_id: uuid.UUID, org_id: uuid.UUID) -> Optional[OrganizationMember]:
@@ -50,8 +49,7 @@ class OrganizationMemberRepository:
         
         if membership:
             membership.role = role
-            self.db.commit()
-            self.db.refresh(membership)
+            self.db.flush()
         
         return membership
 
@@ -66,10 +64,17 @@ class OrganizationMemberRepository:
         
         if membership:
             self.db.delete(membership)
-            self.db.commit()
             return True
         
         return False
+    
+    def commit(self):
+        """Commit the transaction."""
+        self.db.commit()
+    
+    def rollback(self):
+        """Rollback the transaction."""
+        self.db.rollback()
 
     async def is_owner(self, user_id: uuid.UUID, org_id: uuid.UUID) -> bool:
         """Check if user is owner of organization."""

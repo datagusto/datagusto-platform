@@ -29,8 +29,7 @@ class UserRepository:
         """
         db_user = UserModel(**user_data)
         self.db.add(db_user)
-        self.db.commit()
-        self.db.refresh(db_user)
+        self.db.flush()  # Get ID without committing
         return db_user
     
     async def get_user_by_id(self, user_id: str) -> Optional[UserModel]:
@@ -82,8 +81,7 @@ class UserRepository:
         for key, value in user_data.items():
             setattr(user, key, value)
         
-        self.db.commit()
-        self.db.refresh(user)
+        self.db.flush()
         return user
     
     async def delete_user(self, user_id: str) -> bool:
@@ -101,5 +99,12 @@ class UserRepository:
             return False
         
         self.db.delete(user)
+        return True
+    
+    def commit(self):
+        """Commit the transaction."""
         self.db.commit()
-        return True 
+    
+    def rollback(self):
+        """Rollback the transaction."""
+        self.db.rollback()

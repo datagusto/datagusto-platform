@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/sidebar";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function HomeLayout({
   children,
@@ -32,11 +33,12 @@ export default function HomeLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       <Sidebar />
-      <main className="flex-1">
+      <main className="flex-1 overflow-y-auto">
         {children}
       </main>
+      <Toaster />
     </div>
   );
 }

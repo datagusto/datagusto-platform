@@ -76,11 +76,14 @@ class AuthService:
             
             await org_member_repo.create_membership(membership_data)
             
+            # Commit all operations as a single transaction
+            db.commit()
             return user
         except HTTPException:
+            db.rollback()
             raise
         except Exception as e:
-            # Rollback local database transaction
+            # Rollback transaction
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
