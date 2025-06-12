@@ -8,7 +8,14 @@ from app.schemas.user import UserCreate
 from app.repositories.user_repository import UserRepository
 from app.repositories.organization_repository import OrganizationRepository
 from app.repositories.organization_member_repository import OrganizationMemberRepository
-from app.core.security import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.core.security import (
+    get_password_hash, 
+    verify_password, 
+    create_access_token, 
+    create_refresh_token,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    REFRESH_TOKEN_EXPIRE_MINUTES
+)
 
 
 class AuthService:
@@ -121,7 +128,14 @@ class AuthService:
             data={"sub": str(user.id)}, expires_delta=access_token_expires
         )
         
+        # Create refresh token
+        refresh_token_expires = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
+        refresh_token = create_refresh_token(
+            data={"sub": str(user.id)}, expires_delta=refresh_token_expires
+        )
+        
         return {
             "access_token": access_token,
+            "refresh_token": refresh_token,
             "token_type": "bearer"
         } 

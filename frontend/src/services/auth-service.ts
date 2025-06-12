@@ -23,16 +23,26 @@ function getStoredToken(): string | null {
   return localStorage.getItem('access_token');
 }
 
-// Helper function to store token in localStorage
-function storeToken(token: string): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem('access_token', token);
+// Helper function to get refresh token from localStorage
+function getStoredRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('refresh_token');
 }
 
-// Helper function to clear token from localStorage
-function clearStoredToken(): void {
+// Helper function to store tokens in localStorage
+function storeTokens(accessToken: string, refreshToken?: string): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem('access_token', accessToken);
+  if (refreshToken) {
+    localStorage.setItem('refresh_token', refreshToken);
+  }
+}
+
+// Helper function to clear tokens from localStorage
+function clearStoredTokens(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
 }
 
 export const authService = {
@@ -53,7 +63,7 @@ export const authService = {
     });
 
     const tokenResponse = await handleApiResponse<TokenResponse>(response);
-    storeToken(tokenResponse.access_token);
+    storeTokens(tokenResponse.access_token, tokenResponse.refresh_token);
     return tokenResponse;
   },
 
@@ -93,11 +103,33 @@ export const authService = {
   },
 
   /**
+   * Refresh access token using refresh token
+   */
+  async refreshToken(): Promise<TokenResponse> {
+    const refreshToken = getStoredRefreshToken();
+    if (!refreshToken) {
+      throw new Error('No refresh token found');
+    }
+
+    const response = await fetch(`${API_BASE}/api/${API_VERSION}/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+
+    const tokenResponse = await handleApiResponse<TokenResponse>(response);
+    storeTokens(tokenResponse.access_token);
+    return tokenResponse;
+  },
+
+  /**
    * Logout current user
-   * Clears stored token
+   * Clears stored tokens
    */
   logout(): void {
-    clearStoredToken();
+    clearStoredTokens();
   },
 
   /**
