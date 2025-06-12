@@ -15,4 +15,24 @@ export type {
   OrganizationWithMembers,
   OrganizationCreateData,
   OrganizationUpdateData
-} from './organization'; 
+} from './organization';
+
+// Re-export project types
+export type {
+  Project,
+  ProjectWithApiKey,
+  ProjectMember,
+  UserProjectInfo,
+  ProjectWithMembers,
+  ProjectCreateData,
+  ProjectUpdateData,
+  ApiKeyResponse
+} from './project';
+
+// Re-export trace types
+export type {
+  Trace,
+  Observation,
+  TraceSyncStatus,
+  TraceListResponse
+} from './trace'; 
