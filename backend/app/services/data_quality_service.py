@@ -63,30 +63,30 @@ class DataQualityService:
             except Exception as e:
                 logger.warning(f"Failed to analyze observation {observation.id}: {e}")
                 # Add error as quality issue
-                all_issues.append(
-                    {
-                        "observation_id": str(observation.id),
-                        "issue_type": "analysis_error",
-                        "severity": "medium",
-                        "description": f"Failed to analyze observation data: {str(e)}",
-                        "timestamp": datetime.utcnow().isoformat(),
-                    }
-                )
+                # all_issues.append(
+                #     {
+                #         "observation_id": str(observation.id),
+                #         "issue_type": "analysis_error",
+                #         "severity": "medium",
+                #         "description": f"Failed to analyze observation data: {str(e)}",
+                #         "timestamp": datetime.utcnow().isoformat(),
+                #     }
+                # )
 
         # Calculate overall trace quality score
         if analyzed_observations > 0:
             overall_quality_score = total_quality_score / analyzed_observations
         else:
             overall_quality_score = 0.0
-            all_issues.append(
-                {
-                    "trace_id": str(trace.id),
-                    "issue_type": "no_analyzable_data",
-                    "severity": "low",
-                    "description": "No tool calling observations found to analyze",
-                    "timestamp": datetime.utcnow().isoformat(),
-                }
-            )
+            # all_issues.append(
+            #     {
+            #         "trace_id": str(trace.id),
+            #         "issue_type": "no_analyzable_data",
+            #         "severity": "low",
+            #         "description": "No tool calling observations found to analyze",
+            #         "timestamp": datetime.utcnow().isoformat(),
+            #     }
+            # )
 
         logger.info(
             f"Data quality analysis completed for trace {trace.id}: "

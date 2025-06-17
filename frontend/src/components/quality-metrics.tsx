@@ -16,8 +16,8 @@ interface QualityMetricRowProps {
 
 function QualityMetricRow({ criteria, description, status, details }: QualityMetricRowProps) {
   return (
-    <div className="grid grid-cols-3 gap-4 py-3 border-b border-gray-100 last:border-b-0">
-      <div>
+    <div className="grid grid-cols-3 gap-4 py-3 border-b border-gray-100 last:border-b-0 items-center">
+      <div className="flex flex-col justify-center">
         <div className="font-medium text-sm text-gray-900">{criteria}</div>
         <div className="text-xs text-gray-500 mt-1">{description}</div>
       </div>
@@ -88,30 +88,6 @@ export function QualityMetrics({ observationId, qualityIssues }: QualityMetricsP
       description: 'Required data fields coverage',
       status: completenessStatus,
       details: completenessDetails
-    },
-    {
-      criteria: 'Data Consistency',
-      description: 'Data coherence across fields',
-      status: 'Compliant' as const,
-      details: 'All data is consistent across fields'
-    },
-    {
-      criteria: 'Freshness',
-      description: 'Data recency',
-      status: 'Compliant' as const,
-      details: 'All data is up-to-date'
-    },
-    {
-      criteria: 'Context Awareness',
-      description: 'Context relatedness',
-      status: 'Compliant' as const,
-      details: 'All relevant context considered'
-    },
-    {
-      criteria: 'PII Policy Compliance',
-      description: 'Personal information handling',
-      status: 'Compliant' as const,
-      details: 'No PII detected'
     }
   ];
 

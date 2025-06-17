@@ -93,6 +93,7 @@ class TraceService:
             # Now process and save all traces to database
             new_traces = 0
             updated_traces = 0
+            trace_ids_for_analysis = []
 
             for langfuse_trace_data in all_langfuse_traces:
                 try:
@@ -103,13 +104,14 @@ class TraceService:
 
                     if existing_trace:
                         # Update existing trace
-                        await TraceService._update_trace_from_langfuse(
+                        trace = await TraceService._update_trace_from_langfuse(
                             existing_trace, langfuse_trace_data, trace_repo
                         )
                         updated_traces += 1
+                        trace_ids_for_analysis.append(str(trace.id))
                     else:
                         # Create new trace
-                        await TraceService._create_trace_from_langfuse(
+                        trace = await TraceService._create_trace_from_langfuse(
                             project_id,
                             langfuse_trace_data,
                             langfuse_repo,
@@ -117,6 +119,7 @@ class TraceService:
                             observation_repo,
                         )
                         new_traces += 1
+                        trace_ids_for_analysis.append(str(trace.id))
 
                 except Exception as e:
                     logger.error(
@@ -124,7 +127,13 @@ class TraceService:
                     )
                     continue
 
+            # Commit all traces and observations first
             db.commit()
+            
+            # Now perform data quality analysis on committed traces
+            logger.info(f"Starting data quality analysis for {len(trace_ids_for_analysis)} traces")
+            await TraceService.analyze_traces_data_quality(trace_ids_for_analysis, db)
+            
             sync_completed_at = datetime.utcnow()
 
             logger.info(
@@ -208,6 +217,63 @@ class TraceService:
         return trace
 
     @staticmethod
+    async def analyze_traces_data_quality(
+        trace_ids: List[str], db: Session
+    ) -> None:
+        """
+        Analyze data quality for a list of traces after they have been committed to the database.
+
+        Args:
+            trace_ids: List of trace IDs to analyze
+            db: Database session
+        """
+        trace_repo = TraceRepository(db)
+        
+        for trace_id in trace_ids:
+            try:
+                # Get trace with all its observations
+                trace = await trace_repo.get_trace_by_id(trace_id)
+                if not trace:
+                    logger.warning(f"Trace {trace_id} not found for data quality analysis")
+                    continue
+                
+                # Get observations for this trace
+                observations = trace.observations if hasattr(trace, 'observations') else []
+                
+                if not observations:
+                    logger.info(f"No observations found for trace {trace_id}, skipping data quality analysis")
+                    continue
+                
+                # Perform data quality analysis
+                quality_score, quality_issues = await DataQualityService.analyze_trace_data_quality(
+                    trace, observations, db
+                )
+                
+                # Update trace with quality metrics
+                await DataQualityService.update_trace_quality_metrics(
+                    trace_id, quality_score, quality_issues, db
+                )
+                
+                logger.info(
+                    f"Data quality analysis completed for trace {trace_id}: "
+                    f"score={quality_score:.2f}, issues={len(quality_issues)}"
+                )
+                
+            except Exception as e:
+                logger.error(
+                    f"Failed to perform data quality analysis for trace {trace_id}: {e}"
+                )
+                continue
+        
+        # Commit quality analysis results
+        try:
+            db.commit()
+            logger.info(f"Data quality analysis results committed for {len(trace_ids)} traces")
+        except Exception as e:
+            logger.error(f"Failed to commit data quality analysis results: {e}")
+            db.rollback()
+
+    @staticmethod
     async def _get_project_with_access(
         project_id: str, user_id: str, project_repo: ProjectRepository
     ):
@@ -248,7 +314,6 @@ class TraceService:
         trace = await trace_repo.create_trace(trace_data)
 
         # Fetch and create observations for this trace
-        observations_created = []
         try:
             trace_detail = langfuse_repo.get_trace(langfuse_data["id"])
             observations = trace_detail.get("observations", [])
@@ -256,34 +321,11 @@ class TraceService:
                 observation = await TraceService._create_observation_from_langfuse(
                     trace.id, obs_data, observation_repo
                 )
-                if observation:
-                    observations_created.append(observation)
             time.sleep(2)
         except Exception as e:
             logger.warning(
                 f"Failed to sync observations for trace {langfuse_data['id']}: {e}"
             )
-
-        # Perform data quality analysis if observations were created
-        if observations_created:
-            try:
-                quality_score, quality_issues = await DataQualityService.analyze_trace_data_quality(
-                    trace, observations_created, trace_repo.db
-                )
-                
-                # Update trace with quality metrics
-                await DataQualityService.update_trace_quality_metrics(
-                    str(trace.id), quality_score, quality_issues, trace_repo.db
-                )
-                
-                logger.info(
-                    f"Data quality analysis completed for trace {trace.id}: "
-                    f"score={quality_score:.2f}, issues={len(quality_issues)}"
-                )
-            except Exception as e:
-                logger.warning(
-                    f"Failed to perform data quality analysis for trace {trace.id}: {e}"
-                )
 
         return trace
 
@@ -300,31 +342,6 @@ class TraceService:
         }
 
         updated_trace = await trace_repo.update_trace(trace, update_data)
-        
-        # Re-run data quality analysis for updated trace
-        try:
-            # Get all observations for this trace
-            observations = updated_trace.observations if hasattr(updated_trace, 'observations') else []
-            
-            if observations:
-                quality_score, quality_issues = await DataQualityService.analyze_trace_data_quality(
-                    updated_trace, observations, trace_repo.db
-                )
-                
-                # Update trace with quality metrics
-                await DataQualityService.update_trace_quality_metrics(
-                    str(updated_trace.id), quality_score, quality_issues, trace_repo.db
-                )
-                
-                logger.info(
-                    f"Data quality re-analysis completed for updated trace {updated_trace.id}: "
-                    f"score={quality_score:.2f}, issues={len(quality_issues)}"
-                )
-        except Exception as e:
-            logger.warning(
-                f"Failed to perform data quality re-analysis for updated trace {updated_trace.id}: {e}"
-            )
-
         return updated_trace
 
     @staticmethod
