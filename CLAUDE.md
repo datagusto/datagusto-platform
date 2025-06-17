@@ -320,3 +320,32 @@ Testing approach is minimal, focusing on critical functionality:
 - **SDK-First Approach**: Provides both monitoring platform and runtime protection SDK
 - **Extensible Platform Support**: Currently supports Langfuse with architecture for additional platforms
 - **Real-time Guardrails**: Proactive data quality protection during AI agent execution
+
+## Git Commit Message Rules
+
+### IMPORTANT: Never include Claude Code information in commits
+- **NEVER** include "🤖 Generated with [Claude Code]" in commit messages
+- **NEVER** include "Co-Authored-By: Claude" in commit messages
+- **NEVER** mention AI assistance or code generation tools in commits
+- Keep commit messages focused on the changes made, not how they were made
+
+### Commit Message Format
+Follow conventional commits format:
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+
+Example:
+```
+fix: improve data quality analysis performance
+
+- Deferred analysis until after trace commit
+- Batch analyze traces for better performance
+- Fixed UI alignment issues
+```
