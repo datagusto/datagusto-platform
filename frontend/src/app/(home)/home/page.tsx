@@ -138,13 +138,9 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm text-gray-600 mb-4">
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center justify-between">
                       <span>Platform:</span>
                       <span className="font-medium capitalize">{projectInfo.project.platform_type}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Your role:</span>
-                      <span className="font-medium">{projectInfo.is_owner ? 'Owner' : 'Member'}</span>
                     </div>
                   </div>
                   <Button className="w-full" variant="outline">

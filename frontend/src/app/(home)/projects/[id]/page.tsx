@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, Copy, RefreshCw, BarChart3 } from "lucide-react";
-import Link from "next/link";
+import { Eye, EyeOff, Copy, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import type { UserProjectInfo } from "@/types";
 
@@ -22,7 +21,8 @@ export default function ProjectDetailPage() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
-  const [traceCount, setTraceCount] = useState<number>(0);
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [loadingApiKey, setLoadingApiKey] = useState(false);
 
   useEffect(() => {
     const loadProject = async () => {
@@ -38,13 +38,6 @@ export default function ProjectDetailPage() {
         
         if (projectInfo) {
           setProject(projectInfo);
-          // Load trace count
-          try {
-            const tracesResponse = await TraceService.getTracesByProject(projectInfo.project.id, { limit: 1, offset: 0 });
-            setTraceCount(tracesResponse.total);
-          } catch (error) {
-            console.error('Failed to load trace count:', error);
-          }
         }
       } catch (error) {
         console.error('Failed to load project:', error);
@@ -61,15 +54,25 @@ export default function ProjectDetailPage() {
     toast.success("Copied to clipboard");
   };
 
-  const regenerateApiKey = async () => {
-    if (!project) return;
+  const loadApiKey = async () => {
+    if (!project || loadingApiKey) return;
     
+    setLoadingApiKey(true);
     try {
-      // TODO: Implement API key regeneration
-      console.log('Regenerate API key for project:', project.project.id);
+      const response = await projectService.getProjectApiKey(project.project.id);
+      setApiKey(response.api_key);
     } catch (error) {
-      console.error('Failed to regenerate API key:', error);
+      console.error('Failed to load API key:', error);
+      toast.error('Failed to load API key');
+    } finally {
+      setLoadingApiKey(false);
     }
+  };
+
+
+  const clearApiKey = () => {
+    setApiKey(null);
+    setShowApiKey(false);
   };
 
   const handleSync = async () => {
@@ -118,11 +121,11 @@ export default function ProjectDetailPage() {
         <p className="text-gray-600 mt-2">{project.project.description || "No description"}</p>
       </div>
 
-      {/* Basic Information */}
+      {/* Project Information */}
       <Card>
         <CardHeader>
           <CardTitle>Project Information</CardTitle>
-          <CardDescription>Basic details about your project</CardDescription>
+          <CardDescription>Basic details about your project and API key</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -163,52 +166,93 @@ export default function ProjectDetailPage() {
               className="mt-1"
             />
           </div>
-        </CardContent>
-      </Card>
-
-      {/* API Keys */}
-      <Card>
-        <CardHeader>
-          <CardTitle>API Configuration</CardTitle>
-          <CardDescription>API keys and configuration for SDK integration</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Project API Key */}
+          
+          {/* API Key Display */}
           <div>
             <Label htmlFor="api-key">Project API Key</Label>
             <div className="flex gap-2 mt-1">
               <Input
                 id="api-key"
-                type={showApiKey ? "text" : "password"}
-                value={project.project.api_key}
+                type="text"
+                value={
+                  loadingApiKey 
+                    ? 'Loading API key...' 
+                    : !apiKey 
+                      ? 'Click to load API key' 
+                      : showApiKey 
+                        ? apiKey 
+                        : `${apiKey.substring(0, 8)}${'*'.repeat(Math.max(0, apiKey.length - 8))}`
+                }
                 readOnly
-                className="flex-1"
+                className="flex-1 font-mono"
+                placeholder={!apiKey && !loadingApiKey ? "Click load button to view API key" : ""}
+                onClick={!apiKey && !loadingApiKey ? loadApiKey : undefined}
+                style={!apiKey && !loadingApiKey ? { cursor: 'pointer' } : {}}
               />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setShowApiKey(!showApiKey)}
-              >
-                {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => copyToClipboard(project.project.api_key)}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={regenerateApiKey}
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
+              {!apiKey ? (
+                <Button
+                  variant="outline"
+                  onClick={loadApiKey}
+                  disabled={loadingApiKey}
+                  title="Load API key"
+                >
+                  {loadingApiKey ? 'Loading...' : 'Load'}
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    title={showApiKey ? "Hide API key" : "Show API key"}
+                  >
+                    {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => copyToClipboard(apiKey)}
+                    title="Copy API key to clipboard"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Integration Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Integration Configuration</CardTitle>
+          <CardDescription>Connected observability platform settings and configuration</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Platform Information */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="connected-platform">Connected Platform</Label>
+              <Input
+                id="connected-platform"
+                value={project.project.platform_type.charAt(0).toUpperCase() + project.project.platform_type.slice(1)}
+                readOnly
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="connection-status">Connection Status</Label>
+              <Input
+                id="connection-status"
+                value="Connected"
+                readOnly
+                className="mt-1 text-green-600"
+              />
             </div>
           </div>
 
-          {/* Platform Configuration */}
+          {/* Platform Configuration Details */}
           {project.project.platform_type === 'langfuse' && (
             <>
               <div>
@@ -218,12 +262,13 @@ export default function ProjectDetailPage() {
                     id="public-key"
                     value={project.project.platform_config?.public_key || ""}
                     readOnly
-                    className="flex-1"
+                    className="flex-1 font-mono"
                   />
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={() => copyToClipboard(project.project.platform_config?.public_key || "")}
+                    title="Copy public key to clipboard"
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
@@ -237,12 +282,13 @@ export default function ProjectDetailPage() {
                     type={showSecretKey ? "text" : "password"}
                     value={project.project.platform_config?.secret_key || ""}
                     readOnly
-                    className="flex-1"
+                    className="flex-1 font-mono"
                   />
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={() => setShowSecretKey(!showSecretKey)}
+                    title={showSecretKey ? "Hide secret key" : "Show secret key"}
                   >
                     {showSecretKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -250,13 +296,14 @@ export default function ProjectDetailPage() {
                     variant="outline"
                     size="icon"
                     onClick={() => copyToClipboard(project.project.platform_config?.secret_key || "")}
+                    title="Copy secret key to clipboard"
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
               <div>
-                <Label htmlFor="langfuse-url">Langfuse URL</Label>
+                <Label htmlFor="langfuse-url">Langfuse Server URL</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
                     id="langfuse-url"
@@ -268,16 +315,20 @@ export default function ProjectDetailPage() {
                     variant="outline"
                     size="icon"
                     onClick={() => copyToClipboard(project.project.platform_config?.url || "")}
+                    title="Copy URL to clipboard"
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
               
-              {/* Sync Section */}
-              <div>
-                <Label htmlFor="sync-data">Data Synchronization</Label>
-                <div className="flex gap-2 mt-1">
+              {/* Data Synchronization */}
+              <div className="border-t pt-4">
+                <div className="mb-2">
+                  <h4 className="text-sm font-medium text-gray-900">Data Synchronization</h4>
+                  <p className="text-sm text-gray-500">Manually sync trace data from your connected Langfuse instance</p>
+                </div>
+                <div className="flex gap-2">
                   <Button
                     variant="outline"
                     onClick={handleSync}
@@ -298,7 +349,7 @@ export default function ProjectDetailPage() {
                   </Button>
                 </div>
                 {lastSync && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 mt-2">
                     Last synced: {new Date(lastSync).toLocaleString()}
                   </p>
                 )}
@@ -308,39 +359,6 @@ export default function ProjectDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Project Statistics */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Project Statistics</CardTitle>
-              <CardDescription>Overview of project activity and metrics</CardDescription>
-            </div>
-            <Link href={`/projects/${project.project.id}/traces`}>
-              <Button variant="outline" size="sm">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                View Traces
-              </Button>
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-gray-900">{traceCount}</div>
-              <div className="text-sm text-gray-500">Total Traces</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-gray-900">0</div>
-              <div className="text-sm text-gray-500">Active Incidents</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-gray-900">0</div>
-              <div className="text-sm text-gray-500">Guardrails</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

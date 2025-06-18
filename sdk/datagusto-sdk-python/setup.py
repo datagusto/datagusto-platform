@@ -11,9 +11,9 @@ except FileNotFoundError:
 
 setup(
     name="datagusto-sdk",
-    version="0.1.4",
-    author="Datagusto Team",
-    author_email="support@datagusto.com",
+    version="0.1.5",
+    author="Datagusto",
+    author_email="support@datagusto.jp",
     description="A data quality guardrail SDK for AI agents",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -46,11 +46,10 @@ setup(
             "mypy>=0.910",
         ],
     },
-    keywords="ai, langchain, langgraph, data quality, guardrails, data governance",
+    keywords="ai, data quality, guardrails, data governance",
     project_urls={
         "Bug Reports": "https://github.com/datagusto/datagusto-platform/issues",
         "Source": "https://github.com/datagusto/datagusto-platform",
-        "Documentation": "https://docs.datagusto.com",
     },
     include_package_data=True,
     zip_safe=False,

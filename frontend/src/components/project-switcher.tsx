@@ -72,14 +72,9 @@ export function ProjectSwitcher({
           <FolderOpen className="h-4 w-4 flex-shrink-0" />
           <div className="min-w-0">
             {currentProject ? (
-              <>
-                <div className="text-sm font-medium truncate">
-                  {currentProject.project.name}
-                </div>
-                <div className="text-xs text-gray-500 truncate">
-                  {currentProject.membership.role}
-                </div>
-              </>
+              <div className="text-sm font-medium truncate">
+                {currentProject.project.name}
+              </div>
             ) : (
               <div className="text-sm text-gray-500">
                 {loading ? "Loading..." : "Select project"}
@@ -161,7 +156,7 @@ export function ProjectSwitcher({
                     {projectInfo.project.name}
                   </div>
                   <div className="text-xs text-gray-500 truncate">
-                    {projectInfo.membership.role} • {projectInfo.project.platform_type}
+                    {projectInfo.project.platform_type}
                   </div>
                 </div>
                 
