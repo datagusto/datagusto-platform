@@ -1,92 +1,154 @@
-import { apiClient } from "@/lib/api-client";
-import type { Trace, Observation } from "@/types";
+import { Trace, TraceSyncStatus, TraceListResponse } from '@/types';
 
-// Endpoints
-const API_ENDPOINTS = {
-  TRACES: "/api/v1/traces",
-  AGENT_TRACES: (agentId: string) => `/api/v1/agents/${agentId}/traces`,
-};
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_VERSION = process.env.NEXT_PUBLIC_API_VERSION || 'v1';
 
-// Trace Service
-export const traceService = {
-  /**
-   * Get all traces for the current user
-   */
-  getTraces: async (): Promise<Trace[]> => {
-    const response = await apiClient.get<Trace[]>(API_ENDPOINTS.TRACES);
-
-    if (response.error) {
-      throw new Error(response.error || 'Failed to fetch traces');
-    }
-
-    return response.data;
-  },
-
-  /**
-   * Get traces for a specific agent
-   */
-  getAgentTraces: async (agentId: string): Promise<Trace[]> => {
-    const response = await apiClient.get<Trace[]>(API_ENDPOINTS.AGENT_TRACES(agentId));
-
-    if (response.error) {
-      throw new Error(response.error || 'Failed to fetch agent traces');
-    }
-
-    return response.data;
-  },
-
-  /**
-   * Get a specific trace by ID
-   */
-  getTrace: async (traceId: string): Promise<Trace> => {
-    const response = await apiClient.get<Trace>(`${API_ENDPOINTS.TRACES}/${traceId}`);
-
-    if (response.error) {
-      throw new Error(response.error || 'Failed to fetch trace');
-    }
-
-    return response.data;
-  },
-
-  /**
-   * Get only observations for a specific trace
-   */
-  getTraceObservations: async (traceId: string): Promise<Observation[]> => {
-    const response = await apiClient.get<Observation[]>(
-      `${API_ENDPOINTS.TRACES}/${traceId}/observations`
-    );
-
-    if (response.error) {
-      throw new Error(response.error || 'Failed to fetch trace observations');
-    }
-
-    return response.data;
-  },
-
-  /**
-   * Add an observation to a trace
-   */
-  addObservation: async (
-    traceId: string,
-    observationData: {
-      type: string;
-      name: string;
-      input?: any;
-      output?: any;
-      parentObservationId?: string;
-    }
-  ): Promise<Observation> => {
-    const response = await apiClient.post<Observation>(
-      `${API_ENDPOINTS.TRACES}/${traceId}/observations`,
-      observationData
-    );
-
-    if (response.error) {
-      throw new Error(response.error || 'Failed to add observation');
-    }
-
-    return response.data;
+export class TraceService {
+  private static getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem('access_token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
   }
-};
 
-export default traceService; 
+  /**
+   * Get traces for a specific project
+   */
+  static async getTracesByProject(
+    projectId: string,
+    options: {
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<TraceListResponse> {
+    const { limit = 50, offset = 0 } = options;
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      offset: offset.toString(),
+    });
+
+    const response = await fetch(
+      `${API_BASE_URL}/api/${API_VERSION}/traces/${projectId}?${params}`,
+      {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch traces: ${response.statusText}`);
+    }
+
+    const traces = await response.json();
+    return {
+      traces,
+      total: traces.length,
+      page: Math.floor(offset / limit) + 1,
+      limit,
+    };
+  }
+
+  /**
+   * Get a single trace with observations
+   */
+  static async getTraceById(projectId: string, traceId: string): Promise<Trace> {
+    const response = await fetch(
+      `${API_BASE_URL}/api/${API_VERSION}/traces/${projectId}/${traceId}`,
+      {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch trace: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Get observations for a specific trace
+   */
+  static async getObservations(projectId: string, traceId: string): Promise<any[]> {
+    const response = await fetch(
+      `${API_BASE_URL}/api/${API_VERSION}/traces/${projectId}/${traceId}/observations`,
+      {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch observations: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Sync traces from external platform (e.g., Langfuse)
+   */
+  static async syncTraces(projectId: string): Promise<TraceSyncStatus> {
+    const response = await fetch(
+      `${API_BASE_URL}/api/${API_VERSION}/traces/${projectId}/sync`,
+      {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to sync traces: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Format timestamp for display
+   */
+  static formatTimestamp(timestamp: string): string {
+    return new Date(timestamp).toLocaleString();
+  }
+
+  /**
+   * Get trace name from raw data
+   */
+  static getTraceName(trace: Trace): string {
+    return trace.raw_data?.name || trace.raw_data?.id || trace.external_id;
+  }
+
+  /**
+   * Get trace status from raw data
+   */
+  static getTraceStatus(trace: Trace): string {
+    // Check if there are any quality issues, if so, status is "Incident"
+    if (trace.quality_issues && trace.quality_issues.length > 0) {
+      return 'incident';
+    }
+    
+    return trace.raw_data?.status || 'completed';
+  }
+
+  /**
+   * Get trace duration from raw data
+   */
+  static getTraceDuration(trace: Trace): string | null {
+    const startTime = trace.raw_data?.startTime;
+    const endTime = trace.raw_data?.endTime;
+    
+    if (!startTime || !endTime) return null;
+    
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const duration = end.getTime() - start.getTime();
+    
+    if (duration < 1000) {
+      return `${duration}ms`;
+    } else {
+      return `${(duration / 1000).toFixed(2)}s`;
+    }
+  }
+}

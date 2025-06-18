@@ -1,104 +1,74 @@
-from typing import Dict, Any, Optional, List
 from sqlalchemy.orm import Session
+from sqlalchemy import select
+from typing import Optional, List
+import uuid
 
-from app.models.organization import Organization as OrganizationModel
+from app.models.organization import Organization
 
 
 class OrganizationRepository:
-    """Repository for database organization operations."""
-    
     def __init__(self, db: Session):
-        """
-        Initialize the repository with a database session.
-        
-        Args:
-            db: Database session
-        """
         self.db = db
-    
-    async def create_organization(self, organization_data: Dict[str, Any]) -> OrganizationModel:
-        """
-        Create a new organization in the database.
-        
-        Args:
-            organization_data: Organization data
-            
-        Returns:
-            Created organization
-        """
-        db_organization = OrganizationModel(**organization_data)
-        self.db.add(db_organization)
-        self.db.commit()
-        self.db.refresh(db_organization)
-        return db_organization
-    
-    async def get_organization_by_id(self, organization_id: str) -> Optional[OrganizationModel]:
-        """
-        Get an organization by ID.
-        
-        Args:
-            organization_id: Organization ID
-            
-        Returns:
-            Organization or None if not found
-        """
-        return self.db.query(OrganizationModel).filter(OrganizationModel.id == organization_id).first()
-    
-    async def get_organizations_by_user_id(self, user_id: str) -> List[OrganizationModel]:
-        """
-        Get all organizations for a user.
-        
-        Args:
-            user_id: User ID
-            
-        Returns:
-            List of organizations
-        """
-        from app.models.organization_member import OrganizationMember
-        
-        query = (
-            self.db.query(OrganizationModel)
-            .join(OrganizationMember, OrganizationModel.id == OrganizationMember.organization_id)
-            .filter(OrganizationMember.user_id == user_id)
-        )
-        return query.all()
-    
-    async def update_organization(self, organization_id: str, organization_data: Dict[str, Any]) -> Optional[OrganizationModel]:
-        """
-        Update an organization.
-        
-        Args:
-            organization_id: Organization ID
-            organization_data: Organization data to update
-            
-        Returns:
-            Updated organization or None if not found
-        """
-        organization = await self.get_organization_by_id(organization_id)
-        if not organization:
-            return None
-        
-        for key, value in organization_data.items():
-            setattr(organization, key, value)
-        
-        self.db.commit()
-        self.db.refresh(organization)
+
+    async def create_organization(self, org_data: dict) -> Organization:
+        """Create a new organization."""
+        organization = Organization(**org_data)
+        self.db.add(organization)
+        self.db.flush()  # Get ID without committing
         return organization
+
+    async def get_organization_by_id(self, org_id: uuid.UUID) -> Optional[Organization]:
+        """Get organization by ID."""
+        stmt = select(Organization).where(Organization.id == org_id)
+        result = self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_organization_by_slug(self, slug: str) -> Optional[Organization]:
+        """Get organization by slug."""
+        stmt = select(Organization).where(Organization.slug == slug)
+        result = self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_organizations_for_user(self, user_id: uuid.UUID) -> List[Organization]:
+        """Get all organizations for a user."""
+        stmt = (
+            select(Organization)
+            .join(Organization.members)
+            .where(Organization.members.any(user_id=user_id))
+            .where(Organization.is_active == True)
+        )
+        result = self.db.execute(stmt)
+        return result.scalars().all()
+
+    async def update_organization(self, org_id: uuid.UUID, update_data: dict) -> Optional[Organization]:
+        """Update organization."""
+        stmt = select(Organization).where(Organization.id == org_id)
+        result = self.db.execute(stmt)
+        organization = result.scalar_one_or_none()
+        
+        if organization:
+            for key, value in update_data.items():
+                setattr(organization, key, value)
+            self.db.flush()
+        
+        return organization
+
+    async def delete_organization(self, org_id: uuid.UUID) -> bool:
+        """Soft delete organization by setting is_active to False."""
+        stmt = select(Organization).where(Organization.id == org_id)
+        result = self.db.execute(stmt)
+        organization = result.scalar_one_or_none()
+        
+        if organization:
+            organization.is_active = False
+            return True
+        
+        return False
     
-    async def delete_organization(self, organization_id: str) -> bool:
-        """
-        Delete an organization.
-        
-        Args:
-            organization_id: Organization ID
-            
-        Returns:
-            True if deleted, False if not found
-        """
-        organization = await self.get_organization_by_id(organization_id)
-        if not organization:
-            return False
-        
-        self.db.delete(organization)
+    def commit(self):
+        """Commit the transaction."""
         self.db.commit()
-        return True 
+    
+    def rollback(self):
+        """Rollback the transaction."""
+        self.db.rollback()

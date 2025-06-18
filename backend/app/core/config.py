@@ -8,15 +8,14 @@ load_dotenv()
 
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "TodoApp API"
+    PROJECT_NAME: str = "DataGusto Platform API"
     API_V1_STR: str = "/api"
     
-    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
-    SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "")
-    
     DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "your-secret-key-here")
+    ENABLE_REGISTRATION: bool = os.getenv("ENABLE_REGISTRATION", "false").lower() == "true"
     
-    @field_validator("SUPABASE_URL", "SUPABASE_KEY", "DATABASE_URL")
+    @field_validator("DATABASE_URL")
     @classmethod
     def check_not_empty(cls, v: str) -> str:
         if not v:

@@ -1,20 +1,26 @@
-import Image from "next/image";
-import Link from "next/link";
+"use client";
+
+import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function HomePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading) {
+      if (user) {
+        router.push("/home");
+      } else {
+        router.push("/sign-in");
+      }
+    }
+  }, [user, loading, router]);
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
-      <h1 className="text-4xl font-bold mb-6">ようこそ</h1>
-      <div className="space-x-4">
-        <Link href="/sign-in" 
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-          ログイン
-        </Link>
-        <Link href="/dashboard" 
-              className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90 transition-colors">
-          ダッシュボード
-        </Link>
-      </div>
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="text-gray-500">Loading...</div>
     </div>
   );
 }

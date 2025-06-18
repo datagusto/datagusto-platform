@@ -1,103 +1,92 @@
-from typing import Dict, Any, Optional, List
 from sqlalchemy.orm import Session
+from sqlalchemy import select
+from typing import Optional, List
+import uuid
 
-from app.models.organization_member import OrganizationMember as OrganizationMemberModel, OrganizationRole
+from app.models.organization_member import OrganizationMember
 
 
 class OrganizationMemberRepository:
-    """Repository for database organization member operations."""
-    
     def __init__(self, db: Session):
-        """
-        Initialize the repository with a database session.
-        
-        Args:
-            db: Database session
-        """
         self.db = db
-    
-    async def create_member(self, member_data: Dict[str, Any]) -> OrganizationMemberModel:
-        """
-        Create a new organization member in the database.
+
+    async def create_membership(self, membership_data: dict) -> OrganizationMember:
+        """Create a new organization membership."""
+        membership = OrganizationMember(**membership_data)
+        self.db.add(membership)
+        self.db.flush()  # Get ID without committing
+        return membership
+
+    async def get_membership(self, user_id: uuid.UUID, org_id: uuid.UUID) -> Optional[OrganizationMember]:
+        """Get membership for user in organization."""
+        stmt = select(OrganizationMember).where(
+            OrganizationMember.user_id == user_id,
+            OrganizationMember.organization_id == org_id
+        )
+        result = self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_user_memberships(self, user_id: uuid.UUID) -> List[OrganizationMember]:
+        """Get all memberships for a user."""
+        stmt = select(OrganizationMember).where(OrganizationMember.user_id == user_id)
+        result = self.db.execute(stmt)
+        return result.scalars().all()
+
+    async def get_organization_memberships(self, org_id: uuid.UUID) -> List[OrganizationMember]:
+        """Get all memberships for an organization."""
+        stmt = select(OrganizationMember).where(OrganizationMember.organization_id == org_id)
+        result = self.db.execute(stmt)
+        return result.scalars().all()
+
+    async def update_membership_role(self, user_id: uuid.UUID, org_id: uuid.UUID, role: str) -> Optional[OrganizationMember]:
+        """Update membership role."""
+        stmt = select(OrganizationMember).where(
+            OrganizationMember.user_id == user_id,
+            OrganizationMember.organization_id == org_id
+        )
+        result = self.db.execute(stmt)
+        membership = result.scalar_one_or_none()
         
-        Args:
-            member_data: Member data
-            
-        Returns:
-            Created member
-        """
-        db_member = OrganizationMemberModel(**member_data)
-        self.db.add(db_member)
+        if membership:
+            membership.role = role
+            self.db.flush()
+        
+        return membership
+
+    async def delete_membership(self, user_id: uuid.UUID, org_id: uuid.UUID) -> bool:
+        """Delete organization membership."""
+        stmt = select(OrganizationMember).where(
+            OrganizationMember.user_id == user_id,
+            OrganizationMember.organization_id == org_id
+        )
+        result = self.db.execute(stmt)
+        membership = result.scalar_one_or_none()
+        
+        if membership:
+            self.db.delete(membership)
+            return True
+        
+        return False
+    
+    def commit(self):
+        """Commit the transaction."""
         self.db.commit()
-        self.db.refresh(db_member)
-        return db_member
     
-    async def get_member(self, user_id: str, organization_id: str) -> Optional[OrganizationMemberModel]:
-        """
-        Get a member by user ID and organization ID.
-        
-        Args:
-            user_id: User ID
-            organization_id: Organization ID
-            
-        Returns:
-            Member or None if not found
-        """
-        return self.db.query(OrganizationMemberModel).filter(
-            OrganizationMemberModel.user_id == user_id,
-            OrganizationMemberModel.organization_id == organization_id
-        ).first()
-    
-    async def get_members_by_organization_id(self, organization_id: str) -> List[OrganizationMemberModel]:
-        """
-        Get all members of an organization.
-        
-        Args:
-            organization_id: Organization ID
-            
-        Returns:
-            List of members
-        """
-        return self.db.query(OrganizationMemberModel).filter(
-            OrganizationMemberModel.organization_id == organization_id
-        ).all()
-    
-    async def update_member_role(self, user_id: str, organization_id: str, role: OrganizationRole) -> Optional[OrganizationMemberModel]:
-        """
-        Update a member's role.
-        
-        Args:
-            user_id: User ID
-            organization_id: Organization ID
-            role: New role
-            
-        Returns:
-            Updated member or None if not found
-        """
-        member = await self.get_member(user_id, organization_id)
-        if not member:
-            return None
-        
-        member.role = role
-        self.db.commit()
-        self.db.refresh(member)
-        return member
-    
-    async def delete_member(self, user_id: str, organization_id: str) -> bool:
-        """
-        Delete a member.
-        
-        Args:
-            user_id: User ID
-            organization_id: Organization ID
-            
-        Returns:
-            True if deleted, False if not found
-        """
-        member = await self.get_member(user_id, organization_id)
-        if not member:
-            return False
-        
-        self.db.delete(member)
-        self.db.commit()
-        return True 
+    def rollback(self):
+        """Rollback the transaction."""
+        self.db.rollback()
+
+    async def is_owner(self, user_id: uuid.UUID, org_id: uuid.UUID) -> bool:
+        """Check if user is owner of organization."""
+        membership = await self.get_membership(user_id, org_id)
+        return membership is not None and membership.role == "owner"
+
+    async def is_admin_or_owner(self, user_id: uuid.UUID, org_id: uuid.UUID) -> bool:
+        """Check if user is admin or owner of organization."""
+        membership = await self.get_membership(user_id, org_id)
+        return membership is not None and membership.role in ["owner", "admin"]
+
+    async def has_access(self, user_id: uuid.UUID, org_id: uuid.UUID) -> bool:
+        """Check if user has any access to organization."""
+        membership = await self.get_membership(user_id, org_id)
+        return membership is not None

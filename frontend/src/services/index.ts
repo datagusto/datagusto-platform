@@ -1,15 +1,14 @@
-export { agentService } from './agent-service';
-export { traceService } from './trace-service';
-export { guardrailService } from './guardrail-service';
+// Export auth service
+export { authService } from './auth-service';
 
-// Types re-exports
-export type { 
-  LoginCredentials, 
-  RegisterData, 
-  AuthResponse 
-} from './auth-service';
+// Export organization service
+export { organizationService } from './organization-service';
 
-export type { 
-  Guardrail,
-  GuardrailAction
-} from './guardrail-service'; 
+// Export project service
+export { projectService } from './project-service';
+
+// Export trace service
+export { TraceService } from './trace-service';
+
+// Export guardrail service
+export { guardrailService } from './guardrail-service'; 

@@ -21,6 +21,8 @@ dependencies = [
     "bcrypt>=4.3.0",
     "requests>=2.32.3",
     "langchain-openai>=0.3.14",
+    "pytest-asyncio>=1.0.0",
+    "pandas>=2.0.0",
 ]
 
 [build-system]
@@ -29,3 +31,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[dependency-groups]
+test = [
+    "httpx>=0.28.1",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=1.0.0",
+    "pytest-mock>=3.14.0",
+]

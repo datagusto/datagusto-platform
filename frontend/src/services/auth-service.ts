@@ -1,128 +1,149 @@
-import { apiClient } from "@/lib/api-client";
-import { setToken, clearToken } from "@/utils/auth";
+import type { LoginCredentials, RegisterData, TokenResponse, User, ApiError } from '@/types/auth';
 
-// Types
-export interface LoginCredentials {
-  email: string;
-  password: string;
+/**
+ * Simple and clean authentication service
+ * Matches the backend API specification exactly
+ */
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+const API_VERSION = process.env.NEXT_PUBLIC_API_VERSION || 'v1';
+
+// Helper function to handle API responses
+async function handleApiResponse<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    const errorData: ApiError = await response.json();
+    throw new Error(errorData.detail || `HTTP ${response.status}`);
+  }
+  return response.json();
 }
 
-export interface RegisterData {
-  name: string;
-  email: string;
-  password: string;
+// Helper function to get token from localStorage
+function getStoredToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('access_token');
 }
 
-export interface AuthResponse {
-  access_token: string;
-  token_type: string;
+// Helper function to get refresh token from localStorage
+function getStoredRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('refresh_token');
 }
 
-// Endpoints
-const API_ENDPOINTS = {
-  TOKEN: "/api/v1/auth/token",
-  REGISTER: "/api/v1/auth/register",
-  REFRESH: "/api/v1/auth/refresh-token",
-};
+// Helper function to store tokens in localStorage
+function storeTokens(accessToken: string, refreshToken?: string): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem('access_token', accessToken);
+  if (refreshToken) {
+    localStorage.setItem('refresh_token', refreshToken);
+  }
+}
 
-// Auth Service
+// Helper function to clear tokens from localStorage
+function clearStoredTokens(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+}
+
 export const authService = {
   /**
-   * Login user with email and password
+   * Login with email and password
+   * Returns JWT token on success
    */
-  login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${API_ENDPOINTS.TOKEN}`, 
-      {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'password',
-          username: credentials.email,
-          password: credentials.password,
-          scope: '',
-          client_id: process.env.NEXT_PUBLIC_CLIENT_ID || 'string',
-          client_secret: process.env.NEXT_PUBLIC_CLIENT_SECRET || 'string',
-        }),
-      }
-    );
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || 'Failed to sign in');
-    }
+  async login(credentials: LoginCredentials): Promise<TokenResponse> {
+    const response = await fetch(`${API_BASE}/api/${API_VERSION}/auth/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        username: credentials.email,
+        password: credentials.password,
+      }),
+    });
 
-    const data: AuthResponse = await response.json();
-    
-    // Store the token
-    setToken(data.access_token);
-    
-    // Also store in sessionStorage as a backup
-    if (typeof window !== 'undefined') {
-      try {
-        sessionStorage.setItem('accessToken', data.access_token);
-        sessionStorage.setItem('auth_timestamp', Date.now().toString());
-      } catch (e) {
-        console.error('Failed to store in sessionStorage:', e);
-      }
-    }
-    
-    return data;
+    const tokenResponse = await handleApiResponse<TokenResponse>(response);
+    storeTokens(tokenResponse.access_token, tokenResponse.refresh_token);
+    return tokenResponse;
   },
-  
+
   /**
    * Register a new user
+   * Returns user data on success
    */
-  register: async (data: RegisterData): Promise<void> => {
-    const response = await apiClient.post(
-      API_ENDPOINTS.REGISTER,
-      {
-        name: data.name,
-        email: data.email,
-        password: data.password,
-      }
-    );
-    
-    if (response.error) {
-      throw new Error(response.error || 'Registration failed');
-    }
-  },
-  
-  /**
-   * Logout the current user
-   */
-  logout: (): void => {
-    clearToken();
-    
-    // Also clear from sessionStorage
-    if (typeof window !== 'undefined') {
-      try {
-        sessionStorage.removeItem('accessToken');
-        sessionStorage.removeItem('auth_timestamp');
-      } catch (e) {
-        console.error('Failed to clear sessionStorage:', e);
-      }
-    }
-  },
-  
-  /**
-   * Refresh the auth token
-   */
-  refreshToken: async (): Promise<AuthResponse> => {
-    const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.REFRESH);
-    
-    if (response.error) {
-      throw new Error(response.error || 'Failed to refresh token');
-    }
-    
-    // Store the new token
-    setToken(response.data.access_token);
-    
-    return response.data;
-  }
-};
+  async register(userData: RegisterData): Promise<User> {
+    const response = await fetch(`${API_BASE}/api/${API_VERSION}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
 
-export default authService; 
+    return handleApiResponse<User>(response);
+  },
+
+  /**
+   * Get current user information
+   * Requires valid token
+   */
+  async getCurrentUser(): Promise<User> {
+    const token = getStoredToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const response = await fetch(`${API_BASE}/api/${API_VERSION}/auth/me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    return handleApiResponse<User>(response);
+  },
+
+  /**
+   * Refresh access token using refresh token
+   */
+  async refreshToken(): Promise<TokenResponse> {
+    const refreshToken = getStoredRefreshToken();
+    if (!refreshToken) {
+      throw new Error('No refresh token found');
+    }
+
+    const response = await fetch(`${API_BASE}/api/${API_VERSION}/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+
+    const tokenResponse = await handleApiResponse<TokenResponse>(response);
+    storeTokens(tokenResponse.access_token);
+    return tokenResponse;
+  },
+
+  /**
+   * Logout current user
+   * Clears stored tokens
+   */
+  logout(): void {
+    clearStoredTokens();
+  },
+
+  /**
+   * Check if user is authenticated
+   * Returns true if valid token exists
+   */
+  isAuthenticated(): boolean {
+    return !!getStoredToken();
+  },
+
+  /**
+   * Get current token
+   */
+  getToken(): string | null {
+    return getStoredToken();
+  },
+}; 

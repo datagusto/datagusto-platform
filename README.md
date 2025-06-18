@@ -11,8 +11,7 @@
 datagusto provides step-by-step visibility into why AI agents fail — not just when they fail — with automated guardrails that prevent issues in real-time.
 
 ## News
-- <b>April 20, 2025</b>: Released a major update for root cause analysis
-- <b>April 4, 2025</b>: We launch the datagusto platform as open-source software
+- <b>June 18, 2025</b>: Major update to support guardrails. Now you can control your AI agents based on data quality!
 
 ## Get Started
 
@@ -50,71 +49,98 @@ This guide walk you through the steps to run datagusto platform locally using do
     cd datagusto-platform
     ```
 
-2. Create environment configuration
-   ```bash
-   cp .env.example .env
-   ```
-3. Provide `OPENAI_API_KEY` for the root cause analysis function
-    ```
-    $ vi .env
-
-    OPENAI_API_KEY=sk-xxxxxxxxxx
-    ```
-3. Start the application
+2. Start the application
    ```bash
    docker compose up
    ```
 
-4. Open http://localhost:3000 in your browser to access the datagusto UI.
+3. Open http://localhost:3000 in your browser to access the datagusto UI.
 
 
 ### STEP 3: Integrating AI agents with datagusto
 This guide helps you to integrate your AI agent's trace information with datagusto.
 
-<b>(1) Add your AI agent information</b>
+<b>(1) Register your AI agent information</b>
 1. Create your account via http://localhost:3000/sign-up
 
     <img src=docs/assets/sc1.png width="500">
 
-2. Add your AI agent via <b>[AI Agents] menu</b> > <b>[Add New Agent] button</b>    
+2. Register your AI agent via <b>"Click to create" button</b>    
 
     <img src=docs/assets/sc2.png width="500">
 
 3. Input your AI agent infomation including Langfuse project credentials (`public_key`, `secret_key`, and `server`)
 
-    <img src=docs/assets/sc3.png width="500">
+    <img src=docs/assets/sc3.png width="300">
     
 
 <b>(2) Sync your AI agent's traces</b>
-1. Go to your AI agent's detail page via <b>[AI Agents] menu</b> > <b>Choose your AI agent in the list</b>
+1. Go to your AI agent's project trace page via <b>[Trace] menu</b>. Then, click <b>[Sync Trace] button</b> to sync traces stored in Langfuse
 
     <img src=docs/assets/sc4.png width="500">
 
-2. Click <b>[Sync data] button</b> to sync traces stored in Langfuse
+
+2. After syncing, you can see recent traces as below
 
     <img src=docs/assets/sc5.png width="500">
 
-3. After syncing, you can see recent traces as below
-
-    <img src=docs/assets/sc6.png width="500">
-
-<b>Now you are ready for managing AI agent Unpredictability!</b>  
+<b>Now you are ready for managing AI agent unpredictability!</b>  
 Once datagusto synced with Langfuse, you can see the status of all AI agent's traces.
 
-### STEP 4: Root cause analysis for your AI agent’s traces
+### STEP 4: Root cause analysis for your AI agent's traces
 
-If your agent has any suspected incident, you can quickly review it by checking whether “Status” field indicates “INCIDENT” or not.
-
-    <img src=docs/assets/sc7.png width="500">
+If your agent has any suspected incident, you can quickly review it by checking whether "Status" field indicates "INCIDENT" or not.
 
 If a trace has suspected incident logs, you can see what, where, and why the suspected incident happened.
 
-    <img src=docs/assets/sc8.png width="500">
+<img src=docs/assets/sc6.png width="500">
 
 
-**NOTE:** Currently, datagusto check “Hallucination” for every trace with [this system prompt](https://github.com/datagusto/datagusto-platform/blob/b7b70059841c6a4cf04c79013bcfcbc8615984bb/backend/app/services/evaluation_service.py#L31-L44). We plan to support other types of incident checks soon. If you have any requests, please share it with us via our Feedback Portal!
+### STEP 5: Guardrail to control your AI agent's behavior based on data quality
+
+You can configure guradrails for your AI agents via <b>"Guardrail"</b> > <b>"Add Guardrail" button</b> 
+
+<img src=docs/assets/sc7.png width="500">
+
+Then, let's integrate your AI agent and datagusto!
+
+<b>(1) Install the datagusto SDK</b>
+```bash
+pip install datagusto-sdk
+```
+
+<b>(2) Set up environment variables</b>
+```bash
+export DATAGUSTO_API_KEY="your_api_key_here"
+export DATAGUSTO_API_URL="http://localhost:8000"
+```
+
+You can find your API key in the <b>"Project Settings"</b> menu.
 
 
+<b>(3) Basic integration with LangGraph</b>
+
+Simply add `datagusto_guardrail` to your existing tool set - no complex integration required!
+The below is an example to add `datagusto_guardrail` to a LangGraph-based AI agent.
+
+```python
+from datagusto_sdk.langgraph.toolset import datagusto_guardrail
+from langchain_tavily import TavilySearch
+from langgraph.graph import StateGraph, START, END
+from langchain.chat_models import init_chat_model
+
+# Initialize your tools including the datagusto guardrail
+tool = TavilySearch(max_results=2)
+tools = [tool, datagusto_guardrail]  # Just add datagusto_guardrail to your existing tools
+
+# Set up your LLM with tools
+llm = init_chat_model("anthropic:claude-3-5-sonnet-latest")
+llm_with_tools = llm.bind_tools(tools)
+
+# The guardrail will automatically be called after other tools to ensure data quality
+```
+
+For detailed usage examples and advanced configuration, please refer to [the SDK's PyPI page](https://pypi.org/project/datagusto-sdk/).
 
 ## Feedback and Issue Reporting
 If you have any feedback or discover any issues, please contact us through the board at the following link:

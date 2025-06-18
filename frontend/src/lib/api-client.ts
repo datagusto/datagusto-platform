@@ -1,191 +1,181 @@
-import { getToken, clearToken, redirectToLogin } from "@/utils/auth";
+/**
+ * API client with automatic token refresh
+ */
+import { authService } from '@/services/auth-service';
 
-// Types for API requests
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+const API_VERSION = process.env.NEXT_PUBLIC_API_VERSION || 'v1';
 
-interface RequestOptions extends Omit<RequestInit, 'method' | 'body'> {
-  params?: Record<string, string | number | boolean | undefined>;
-  data?: Record<string, any> | FormData;
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+// Subscribe to token refresh
+function subscribeTokenRefresh(cb: (token: string) => void) {
+  refreshSubscribers.push(cb);
 }
 
-interface ApiResponse<T = any> {
-  data: T;
-  error?: string;
-  status: number;
+// Notify all subscribers when token is refreshed
+function onTokenRefreshed(token: string) {
+  refreshSubscribers.forEach(cb => cb(token));
+  refreshSubscribers = [];
 }
 
-// Utility to build URL with query parameters
-const buildUrl = (endpoint: string, params?: Record<string, string | number | boolean | undefined>): string => {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!apiUrl) {
-    throw new Error('API URL not configured');
-  }
-
-  // Build the base URL
-  let url = `${apiUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-
-  // Add query parameters if they exist
-  if (params && Object.keys(params).length > 0) {
-    const queryParams = new URLSearchParams();
-    
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        queryParams.append(key, String(value));
-      }
-    });
-    
-    const queryString = queryParams.toString();
-    if (queryString) {
-      url += `${url.includes('?') ? '&' : '?'}${queryString}`;
-    }
-  }
-  
-  return url;
-};
-
-// Core request function
-async function request<T = any>(
-  method: HttpMethod,
-  endpoint: string,
-  options: RequestOptions = {}
-): Promise<ApiResponse<T>> {
-  const { params, data, headers: customHeaders = {}, ...restOptions } = options;
-  const url = buildUrl(endpoint, params);
-  
-  // Prepare headers
-  const headers = new Headers(customHeaders);
-  const token = getToken();
-  
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-  
-  // If we have data and it's not already FormData, set Content-Type and stringify
-  let body: string | FormData | undefined = undefined;
-  if (data) {
-    if (data instanceof FormData) {
-      body = data;
-    } else {
-      headers.set('Content-Type', 'application/json');
-      body = JSON.stringify(data);
-    }
-  }
-  
+// Parse JWT token to check expiration
+function parseJwt(token: string): any {
   try {
-    const response = await fetch(url, {
-      method,
-      headers,
-      body,
-      credentials: 'include',
-      ...restOptions,
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return null;
+  }
+}
+
+// Check if token is expired or about to expire (within 5 minutes)
+function isTokenExpired(token: string): boolean {
+  const payload = parseJwt(token);
+  if (!payload || !payload.exp) return true;
+  
+  const expirationTime = payload.exp * 1000; // Convert to milliseconds
+  const currentTime = Date.now();
+  const timeUntilExpiry = expirationTime - currentTime;
+  
+  // Consider token expired if it expires within 5 minutes
+  return timeUntilExpiry < 5 * 60 * 1000;
+}
+
+// Refresh token and retry request
+async function refreshTokenAndRetryRequest(originalRequest: RequestInfo | URL, options?: RequestInit): Promise<Response> {
+  if (!isRefreshing) {
+    isRefreshing = true;
+    
+    try {
+      const tokenResponse = await authService.refreshToken();
+      const newToken = tokenResponse.access_token;
+      isRefreshing = false;
+      onTokenRefreshed(newToken);
+      
+      // Retry original request with new token
+      const newOptions = {
+        ...options,
+        headers: {
+          ...options?.headers,
+          'Authorization': `Bearer ${newToken}`,
+        },
+      };
+      return fetch(originalRequest, newOptions);
+    } catch (error) {
+      isRefreshing = false;
+      // Refresh failed, logout user
+      authService.logout();
+      if (typeof window !== 'undefined') {
+        window.location.href = '/sign-in';
+      }
+      throw error;
+    }
+  }
+  
+  // Wait for token refresh to complete
+  return new Promise((resolve) => {
+    subscribeTokenRefresh((token: string) => {
+      const newOptions = {
+        ...options,
+        headers: {
+          ...options?.headers,
+          'Authorization': `Bearer ${token}`,
+        },
+      };
+      resolve(fetch(originalRequest, newOptions));
     });
-    
-    // Handle 401 unauthorized
-    if (response.status === 401) {
-      // Clear the token and redirect to login page
-      clearToken();
-      redirectToLogin(window.location.pathname);
-      throw new Error('Authentication required');
-    }
-    
-    // Try to parse JSON response
-    let responseData: T;
-    const contentType = response.headers.get('content-type');
-    
-    if (contentType && contentType.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      // For non-JSON responses
-      const text = await response.text();
-      responseData = text as unknown as T;
-    }
-    
-    // Return standardized response
-    return {
-      data: responseData,
-      status: response.status,
-    };
-  } catch (error) {
-    // Handle errors
-    console.error(`API request failed: ${url}`, error);
-    
-    return {
-      data: null as unknown as T,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      status: 500,
-    };
-  }
+  });
 }
 
-// API client with convenience methods
+/**
+ * Enhanced fetch function with automatic token refresh
+ */
+export async function apiFetch(path: string, options?: RequestInit): Promise<Response> {
+  const url = `${API_BASE}/api/${API_VERSION}${path}`;
+  const token = authService.getToken();
+  
+  // Check if token needs refresh before making request
+  if (token && isTokenExpired(token)) {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (refreshToken) {
+      return refreshTokenAndRetryRequest(url, options);
+    }
+  }
+  
+  // Add authorization header if token exists
+  const requestOptions: RequestInit = {
+    ...options,
+    headers: {
+      ...options?.headers,
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
+  };
+  
+  const response = await fetch(url, requestOptions);
+  
+  // If response is 401, try to refresh token
+  if (response.status === 401 && token) {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (refreshToken && !isRefreshing) {
+      return refreshTokenAndRetryRequest(url, options);
+    }
+  }
+  
+  return response;
+}
+
+/**
+ * API client helper methods
+ */
 export const apiClient = {
-  // GET request
-  get: <T = any>(endpoint: string, options?: RequestOptions) => 
-    request<T>('GET', endpoint, options),
-  
-  // POST request
-  post: <T = any>(endpoint: string, data?: Record<string, any> | FormData, options?: Omit<RequestOptions, 'data'>) => 
-    request<T>('POST', endpoint, { ...options, data }),
-  
-  // PUT request
-  put: <T = any>(endpoint: string, data?: Record<string, any> | FormData, options?: Omit<RequestOptions, 'data'>) => 
-    request<T>('PUT', endpoint, { ...options, data }),
-  
-  // PATCH request
-  patch: <T = any>(endpoint: string, data?: Record<string, any> | FormData, options?: Omit<RequestOptions, 'data'>) => 
-    request<T>('PATCH', endpoint, { ...options, data }),
-  
-  // DELETE request
-  delete: <T = any>(endpoint: string, options?: RequestOptions) => 
-    request<T>('DELETE', endpoint, options),
+  async get<T>(path: string): Promise<T> {
+    const response = await apiFetch(path);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || `HTTP ${response.status}`);
+    }
+    return response.json();
+  },
+
+  async post<T>(path: string, data?: any): Promise<T> {
+    const response = await apiFetch(path, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || `HTTP ${response.status}`);
+    }
+    return response.json();
+  },
+
+  async put<T>(path: string, data?: any): Promise<T> {
+    const response = await apiFetch(path, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || `HTTP ${response.status}`);
+    }
+    return response.json();
+  },
+
+  async delete<T>(path: string): Promise<T> {
+    const response = await apiFetch(path, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || `HTTP ${response.status}`);
+    }
+    return response.json();
+  },
 };
-
-// Mock data handling
-interface MockImplementation<T> {
-  getData: () => T;
-  find?: (id: string) => any;
-  create?: (data: any) => any;
-  update?: (id: string, data: any) => any;
-  delete?: (id: string) => void;
-}
-
-export class MockApiClient<T> {
-  private mockData: T;
-  private mockImplementation: MockImplementation<T>;
-  
-  constructor(mockImplementation: MockImplementation<T>) {
-    this.mockImplementation = mockImplementation;
-    this.mockData = mockImplementation.getData();
-  }
-  
-  async get(id?: string): Promise<T | any> {
-    if (id && this.mockImplementation.find) {
-      return Promise.resolve(this.mockImplementation.find(id));
-    }
-    return Promise.resolve(this.mockData);
-  }
-  
-  async create(data: any): Promise<any> {
-    if (this.mockImplementation.create) {
-      return Promise.resolve(this.mockImplementation.create(data));
-    }
-    throw new Error('Create not implemented for this mock');
-  }
-  
-  async update(id: string, data: any): Promise<any> {
-    if (this.mockImplementation.update) {
-      return Promise.resolve(this.mockImplementation.update(id, data));
-    }
-    throw new Error('Update not implemented for this mock');
-  }
-  
-  async delete(id: string): Promise<void> {
-    if (this.mockImplementation.delete) {
-      this.mockImplementation.delete(id);
-      return Promise.resolve();
-    }
-    throw new Error('Delete not implemented for this mock');
-  }
-}
-
-export default apiClient; 

@@ -1,137 +1,194 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  getToken, 
-  isAuthenticated as checkAuthentication, 
-  login, 
-  logout, 
-  fetchOrganizationId, 
-  fetchCurrentUser,
-  getStoredUserInfo,
-  UserInfo
-} from '@/utils/auth';
-import type { LoginCredentials, AuthResponse } from '@/utils/auth';
-import { toast } from "sonner";
+import { authService, organizationService, projectService } from '@/services';
+import type { User, LoginCredentials, RegisterData, Organization, UserOrganizationInfo, UserProjectInfo } from '@/types';
 
 interface AuthContextType {
-  isAuthenticated: boolean;
-  token: string | null;
-  user: UserInfo | null;
-  login: (credentials: LoginCredentials) => Promise<AuthResponse>;
-  logout: () => void;
+  user: User | null;
+  organizations: UserOrganizationInfo[];
+  currentOrganization: Organization | null;
+  currentProject: UserProjectInfo | null;
   loading: boolean;
-  refreshUserInfo: () => Promise<UserInfo | null>;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  register: (userData: RegisterData) => Promise<void>;
+  logout: () => void;
+  setCurrentOrganization: (org: Organization) => void;
+  setCurrentProject: (project: UserProjectInfo | null) => void;
+  refreshOrganizations: () => Promise<void>;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [organizations, setOrganizations] = useState<UserOrganizationInfo[]>([]);
+  const [currentOrganization, setCurrentOrganizationState] = useState<Organization | null>(null);
+  const [currentProject, setCurrentProjectState] = useState<UserProjectInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<UserInfo | null>(null);
 
-  // ユーザー情報を更新する関数
-  const refreshUserInfo = async () => {
-    const userInfo = await fetchCurrentUser();
-    setUser(userInfo);
-    return userInfo;
-  };
-
-  // ログイン状態の初期化
+  // Load current organization from localStorage
   useEffect(() => {
-    const initAuth = async () => {
-      const currentToken = getToken();
-      const authState = checkAuthentication();
-      
-      setToken(currentToken);
-      setIsAuthenticated(authState);
-      
-      // キャッシュからユーザー情報を取得
-      const cachedUserInfo = getStoredUserInfo();
-      if (cachedUserInfo) {
-        setUser(cachedUserInfo);
+    const savedOrgId = localStorage.getItem('current_organization_id');
+    if (savedOrgId && organizations.length > 0) {
+      const org = organizations.find(o => o.organization.id === savedOrgId)?.organization;
+      if (org) {
+        setCurrentOrganizationState(org);
+      } else {
+        // Fallback to first organization if saved one not found
+        setCurrentOrganizationState(organizations[0].organization);
+        localStorage.setItem('current_organization_id', organizations[0].organization.id);
       }
+    } else if (organizations.length > 0) {
+      // Set first organization as default
+      setCurrentOrganizationState(organizations[0].organization);
+      localStorage.setItem('current_organization_id', organizations[0].organization.id);
+    }
+  }, [organizations]);
+
+  // Load current project from localStorage when organization is set
+  useEffect(() => {
+    const loadCurrentProject = async () => {
+      if (!currentOrganization) return;
       
-      // すでに認証済みの場合、組織IDとユーザー情報を取得する
-      if (authState) {
-        const hasOrganization = await fetchOrganizationId();
-        
-        // ユーザー情報を取得
-        const userInfo = await fetchCurrentUser();
-        if (userInfo) {
-          setUser(userInfo);
-        }
-        
-        // 組織が見つからない場合、ログアウトして再ログインを促す
-        if (!hasOrganization) {
-          console.warn('No organization found for user. Logging out...');
-          logout();
-          setToken(null);
-          setIsAuthenticated(false);
-          setUser(null);
-          // ユーザーがすでにページを見ている場合のために通知
-          if (typeof window !== 'undefined') {
-            toast.error("組織情報が見つかりません。再度ログインしてください。");
+      const savedProjectId = localStorage.getItem('current_project_id');
+      if (savedProjectId) {
+        try {
+          const userProjects = await projectService.getUserProjects();
+          const projectInfo = userProjects.find(p => 
+            p.project.id === savedProjectId && 
+            p.project.organization_id === currentOrganization.id
+          );
+          
+          if (projectInfo) {
+            setCurrentProjectState(projectInfo);
+          } else {
+            // Project not found or not in current organization, clear saved ID
+            localStorage.removeItem('current_project_id');
           }
+        } catch (error) {
+          console.error('Failed to load saved project:', error);
+          localStorage.removeItem('current_project_id');
         }
       }
-      
-      setLoading(false);
     };
 
-    initAuth();
-  }, []);
+    loadCurrentProject();
+  }, [currentOrganization]);
 
-  const handleLogin = async (credentials: LoginCredentials) => {
-    setLoading(true);
+  const refreshOrganizations = async () => {
     try {
-      const response = await login(credentials);
-      setToken(response.access_token);
-      setIsAuthenticated(true);
-      
-      // ログイン直後に組織情報を取得する
-      const hasOrganization = await fetchOrganizationId();
-      
-      // ユーザー情報を取得
-      const userInfo = await fetchCurrentUser();
-      if (userInfo) {
-        setUser(userInfo);
-      }
-      
-      // 組織が見つからない場合、エラーを表示
-      if (!hasOrganization) {
-        toast.error("組織情報が見つかりません。システム管理者に連絡してください。");
-        logout();
-        setToken(null);
-        setIsAuthenticated(false);
-        setUser(null);
-        throw new Error('組織情報が見つかりません');
-      }
-      
-      // Return the response so the component can decide what to do next
-      return response;
-    } finally {
-      setLoading(false);
+      const userOrgs = await organizationService.getUserOrganizations();
+      setOrganizations(userOrgs);
+    } catch (error) {
+      console.error('Failed to fetch organizations:', error);
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    setToken(null);
-    setIsAuthenticated(false);
-    setUser(null);
+  // Check token expiration periodically
+  useEffect(() => {
+    const checkTokenExpiration = () => {
+      const token = authService.getToken();
+      if (!token) return;
+
+      try {
+        // Parse JWT token
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const expirationTime = payload.exp * 1000;
+        const currentTime = Date.now();
+        const timeUntilExpiry = expirationTime - currentTime;
+
+        // If token expires in less than 5 minutes, refresh it
+        if (timeUntilExpiry < 5 * 60 * 1000 && timeUntilExpiry > 0) {
+          authService.refreshToken().catch((error) => {
+            console.error('Failed to refresh token:', error);
+            logout();
+          });
+        } else if (timeUntilExpiry <= 0) {
+          // Token already expired
+          logout();
+        }
+      } catch (error) {
+        console.error('Error checking token expiration:', error);
+      }
+    };
+
+    // Check every minute
+    const interval = setInterval(checkTokenExpiration, 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Initialize auth state on mount
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        if (authService.isAuthenticated()) {
+          const userData = await authService.getCurrentUser();
+          setUser(userData);
+          await refreshOrganizations();
+        }
+      } catch (error) {
+        // Token might be invalid, clear it
+        authService.logout();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+  }, []);
+
+  const login = async (credentials: LoginCredentials) => {
+    const tokenResponse = await authService.login(credentials);
+    const userData = await authService.getCurrentUser();
+    setUser(userData);
+    await refreshOrganizations();
   };
 
-  const value = {
-    isAuthenticated,
-    token,
+  const register = async (userData: RegisterData) => {
+    await authService.register(userData);
+  };
+
+  const logout = () => {
+    authService.logout();
+    setUser(null);
+    setOrganizations([]);
+    setCurrentOrganizationState(null);
+    setCurrentProjectState(null);
+    localStorage.removeItem('current_organization_id');
+    localStorage.removeItem('current_project_id');
+  };
+
+  const setCurrentOrganization = (org: Organization) => {
+    setCurrentOrganizationState(org);
+    setCurrentProjectState(null); // Reset project when changing organization
+    localStorage.setItem('current_organization_id', org.id);
+    localStorage.removeItem('current_project_id');
+  };
+
+  const setCurrentProject = (project: UserProjectInfo | null) => {
+    setCurrentProjectState(project);
+    if (project) {
+      localStorage.setItem('current_project_id', project.project.id);
+    } else {
+      localStorage.removeItem('current_project_id');
+    }
+  };
+
+  const value: AuthContextType = {
     user,
-    login: handleLogin,
-    logout: handleLogout,
+    organizations,
+    currentOrganization,
+    currentProject,
     loading,
-    refreshUserInfo
+    login,
+    register,
+    logout,
+    setCurrentOrganization,
+    setCurrentProject,
+    refreshOrganizations,
+    isAuthenticated: !!user,
   };
 
   return (
@@ -147,4 +204,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-} 
+}

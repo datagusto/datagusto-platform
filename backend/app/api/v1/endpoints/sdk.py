@@ -1,142 +1,76 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import Any, Dict
+from typing import List
 
 from app.core.database import get_db
-from app.core.auth import get_agent_from_api_key
-from app.models.agent import Agent as AgentModel
-from app.models.observation import Observation as ObservationModel
-from app.schemas.trace import (
-    Trace, TraceCreate, TraceUpdate, 
-    Observation, ObservationCreate
-)
-from app.services.trace_service import TraceService
-from app.repositories.trace_repository import TraceRepository
+from app.core.sdk_auth import get_project_from_api_key
+from app.models import Project, Guardrail, AuditLog
+from app.schemas.guardrail import GuardrailSDKResponse
+from app.schemas.audit_log import AuditLogCreate, AuditLogResponse
 
 router = APIRouter()
 
 
-@router.post("/traces", response_model=Dict[str, str])
-async def create_trace_from_sdk(
-    trace_in: TraceCreate,
-    agent: AgentModel = Depends(get_agent_from_api_key),
+@router.get("/guardrails", response_model=List[GuardrailSDKResponse])
+async def get_guardrails_for_sdk(
+    project: Project = Depends(get_project_from_api_key),
     db: Session = Depends(get_db)
-) -> Any:
-    """
-    Create a new trace from the SDK.
+):
+    """Get active guardrail definitions for SDK."""
     
-    The agent_id is automatically determined from the API key authentication,
-    so it does not need to be included in the request body.
-    """
-    try:
-        # Create trace using the agent's creator as the user
-        trace = await TraceService.create_trace(
-            agent_id=str(agent.id),
-            user_id=agent.creator_id,
-            trace_data=trace_in.model_dump(exclude={"agent_id"}),
-            db=db
+    guardrails = db.query(Guardrail).filter(
+        Guardrail.project_id == project.id,
+        Guardrail.is_active == True
+    ).all()
+    
+    return [
+        GuardrailSDKResponse(
+            id=guardrail.id,
+            name=guardrail.name,
+            trigger_condition=guardrail.trigger_condition,
+            check_config=guardrail.check_config,
+            action=guardrail.action
         )
-        return {"trace_id": str(trace.id)}
-    except Exception as e:
-        if isinstance(e, HTTPException):
-            raise e
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create trace: {str(e)}"
-        )
+        for guardrail in guardrails
+    ]
 
 
-@router.post("/observations", response_model=Dict[str, str])
-async def add_observation_from_sdk(
-    observation_in: ObservationCreate,
-    agent: AgentModel = Depends(get_agent_from_api_key),
+@router.post("/audit/", response_model=AuditLogResponse)
+async def create_audit_log(
+    audit_data: AuditLogCreate,
+    project: Project = Depends(get_project_from_api_key),
     db: Session = Depends(get_db)
-) -> Any:
-    """
-    Add an observation to a trace from the SDK.
+):
+    """Create audit log entry from SDK."""
     
-    Parameters:
-        observation_in: The observation data including the trace_id
-    """
-    try:
-        # Check if parent_id exists in the database if it's provided
-        if observation_in.parent_id is not None:
-            # Check if the parent observation exists
-            # parent_observation = db.query(ObservationModel).filter(
-            #     ObservationModel.id == observation_in.parent_id
-            # ).first()
-            
-            # if not parent_observation:
-            #     raise HTTPException(
-            #         status_code=status.HTTP_404_NOT_FOUND,
-            #         detail=f"Parent observation with id {observation_in.parent_id} not found"
-            #     )
-            
-            # FIXME
-            observation_in.parent_id = None
-        if observation_in.run_id is not None:
-            obs = db.query(ObservationModel).filter(ObservationModel.trace_id == observation_in.trace_id).filter(ObservationModel.run_id == observation_in.run_id).first()
-            if obs is not None:
-                return {"observation_id": str(obs.id)}
+    # Validate guardrail exists for this project when audit_type is guardrail_execution
+    if audit_data.audit_type == "guardrail_execution":
+        guardrail_id = audit_data.data.guardrail_id
+        guardrail = db.query(Guardrail).filter(
+            Guardrail.id == guardrail_id,
+            Guardrail.project_id == project.id
+        ).first()
         
-        # Add observation using the agent's creator as the user
-        observation = await TraceService.add_observation(
-            trace_id=str(observation_in.trace_id),
-            user_id=agent.creator_id,
-            observation_data=observation_in.model_dump(exclude={"trace_id"}),
-            db=db
-        )
-        
-        # If the observation has parent_id=None, complete the trace
-        if observation_in.parent_id is None and "Chain end" in observation_in.name:
-            # Update trace to completed status
-            await TraceService.update_trace(
-                trace_id=str(observation_in.trace_id),
-                user_id=agent.creator_id,
-                trace_data={"status": "COMPLETED"},
-                db=db
+        if not guardrail:
+            raise HTTPException(
+                status_code=404,
+                detail="Guardrail not found for this project"
             )
         
-        return {"observation_id": str(observation.id)}
-    except Exception as e:
-        if isinstance(e, HTTPException):
-            raise e
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to add observation: {str(e)}"
-        )
-
-
-@router.put("/traces/{trace_id}/complete", response_model=Dict[str, bool])
-async def complete_trace_from_sdk(
-    trace_id: str,
-    trace_update: TraceUpdate,
-    agent: AgentModel = Depends(get_agent_from_api_key),
-    db: Session = Depends(get_db)
-) -> Any:
-    """
-    Complete a trace from the SDK.
-    """
-    try:
-        # Set status to COMPLETED if not specified
-        if trace_update.status is None:
-            trace_update_dict = trace_update.model_dump()
-            trace_update_dict["status"] = "COMPLETED"
-        else:
-            trace_update_dict = trace_update.model_dump()
-        
-        # Update trace using the agent's creator as the user
-        await TraceService.update_trace(
-            trace_id=trace_id,
-            user_id=agent.creator_id,
-            trace_data=trace_update_dict,
-            db=db
-        )
-        return {"success": True}
-    except Exception as e:
-        if isinstance(e, HTTPException):
-            raise e
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to complete trace: {str(e)}"
-        ) 
+        # Update guardrail execution statistics
+        guardrail.execution_count += 1
+        if audit_data.data.execution_result == "success":
+            guardrail.applied_count += 1
+    
+    # Create audit log
+    audit_log = AuditLog(
+        project_id=project.id,
+        audit_type=audit_data.audit_type,
+        data=audit_data.data.dict()
+    )
+    
+    db.add(audit_log)
+    db.commit()
+    db.refresh(audit_log)
+    
+    return audit_log
