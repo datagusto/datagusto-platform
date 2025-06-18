@@ -35,4 +35,24 @@ export type {
   Observation,
   TraceSyncStatus,
   TraceListResponse
-} from './trace'; 
+} from './trace';
+
+// Re-export guardrail types
+export type {
+  Guardrail,
+  TriggerCondition,
+  CheckConfig,
+  GuardrailAction,
+  GuardrailFormData,
+  GuardrailCreateRequest
+} from './guardrail';
+
+// Re-export guardrail preset types
+export type {
+  GuardrailPreset
+} from './guardrail-presets';
+
+export {
+  GUARDRAIL_PRESETS,
+  GUARDRAIL_CATEGORIES
+} from './guardrail-presets'; 

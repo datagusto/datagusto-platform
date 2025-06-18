@@ -42,6 +42,40 @@ async def get_current_user(
     return db_user
 
 
+def get_current_user_sync(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+):
+    """Synchronous version of get_current_user for compatibility"""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    try:
+        # Decode JWT token
+        payload = decode_access_token(token)
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except Exception:
+        raise credentials_exception
+    
+    # Get user from database (synchronous)
+    from app.models.user import User as UserModel
+    from uuid import UUID
+    try:
+        uuid_id = UUID(user_id)
+        db_user = db.query(UserModel).filter(UserModel.id == uuid_id).first()
+    except ValueError:
+        raise credentials_exception
+    
+    if db_user is None:
+        raise credentials_exception
+    
+    return db_user
+
+
 async def get_current_active_user(current_user = Depends(get_current_user)):
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")

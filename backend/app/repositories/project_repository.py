@@ -101,6 +101,26 @@ class ProjectRepository:
         
         return None
     
+    # Synchronous methods for guardrails API
+    def get_by_api_key(self, api_key: str) -> Optional[Project]:
+        """Get project by API key (synchronous)."""
+        stmt = select(Project).where(Project.api_key == api_key)
+        result = self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    def get_user_project(self, user_id: uuid.UUID, project_id: uuid.UUID) -> Optional[Project]:
+        """Get project by ID if user has access (synchronous)."""
+        stmt = (
+            select(Project)
+            .join(Project.members)
+            .where(
+                Project.id == project_id,
+                Project.members.any(user_id=user_id)
+            )
+        )
+        result = self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
     def commit(self):
         """Commit the transaction."""
         self.db.commit()
