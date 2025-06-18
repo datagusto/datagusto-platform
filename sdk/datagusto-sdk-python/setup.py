@@ -6,15 +6,15 @@ try:
         long_description = fh.read()
 except FileNotFoundError:
     long_description = (
-        "Datagusto SDK for Python - A data quality guardrail SDK for LangGraph agents"
+        "Datagusto SDK for Python - A data quality guardrail SDK for AI agents"
     )
 
 setup(
     name="datagusto-sdk",
-    version="0.1.0",
+    version="0.1.4",
     author="Datagusto Team",
     author_email="support@datagusto.com",
-    description="A data quality guardrail SDK for LangGraph agents",
+    description="A data quality guardrail SDK for AI agents",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/datagusto/datagusto-platform",
