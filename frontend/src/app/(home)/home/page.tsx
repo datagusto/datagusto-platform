@@ -5,20 +5,52 @@ import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Settings, Plus, Activity, AlertTriangle, Shield } from "lucide-react";
-import { TraceService } from "@/services";
-import { Trace } from "@/types";
+import { Settings, Plus, Activity, AlertTriangle, Shield, FolderOpen } from "lucide-react";
+import { TraceService, projectService } from "@/services";
+import { Trace, UserProjectInfo } from "@/types";
+import { CreateProjectModal } from "@/components/create-project-modal";
 
 export default function Home() {
-  const { currentProject, currentOrganization } = useAuth();
+  const { currentProject, currentOrganization, setCurrentProject } = useAuth();
   const [traces, setTraces] = useState<Trace[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
+  const [projects, setProjects] = useState<UserProjectInfo[]>([]);
   const [stats, setStats] = useState({
     totalTraces: 0,
     activeIncidents: 0,
     guardrails: 0,
     recentTraces: [] as Trace[]
   });
+
+  const handleCreateProject = () => {
+    console.log('Create project button clicked');
+    setIsCreateProjectModalOpen(true);
+  };
+
+  const handleProjectCreated = async (project: any) => {
+    // Close modal and set the newly created project as current
+    setIsCreateProjectModalOpen(false);
+    if (project && setCurrentProject) {
+      setCurrentProject({ project, is_owner: true });
+    }
+    // Refresh project list
+    await fetchProjects();
+  };
+
+  const fetchProjects = async () => {
+    if (!currentOrganization) return;
+    
+    try {
+      const userProjects = await projectService.getUserProjects();
+      const orgProjects = userProjects.filter(p => 
+        p.project.organization_id === currentOrganization.id
+      );
+      setProjects(orgProjects);
+    } catch (error) {
+      console.error('Failed to fetch projects:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -60,6 +92,10 @@ export default function Home() {
     fetchStats();
   }, [currentProject?.project?.id]);
 
+  useEffect(() => {
+    fetchProjects();
+  }, [currentOrganization]);
+
   if (!currentOrganization) {
     return (
       <div className="flex-1 p-8">
@@ -75,14 +111,56 @@ export default function Home() {
       <div className="flex-1 p-8 space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Welcome to {currentOrganization.name}</h1>
-          <p className="text-gray-600 mt-2">Get started by creating your first project</p>
+          <p className="text-gray-600 mt-2">
+            {projects.length > 0 
+              ? "Select a project or create a new one" 
+              : "Get started by creating your first project"}
+          </p>
         </div>
         
-        <Card className="max-w-md">
+        {/* Project List and Create Card */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Existing Projects */}
+          {projects.map((projectInfo) => (
+            <Card 
+              key={projectInfo.project.id}
+              className="max-w-md cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => setCurrentProject(projectInfo)}
+            >
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FolderOpen className="h-5 w-5" />
+                    {projectInfo.project.name}
+                  </CardTitle>
+                  <CardDescription>
+                    {projectInfo.project.description || "AI agent data quality monitoring"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm text-gray-600 mb-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <span>Platform:</span>
+                      <span className="font-medium capitalize">{projectInfo.project.platform_type}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Your role:</span>
+                      <span className="font-medium">{projectInfo.is_owner ? 'Owner' : 'Member'}</span>
+                    </div>
+                  </div>
+                  <Button className="w-full" variant="outline">
+                    <Activity className="h-4 w-4 mr-2" />
+                    View Project
+                  </Button>
+                </CardContent>
+              </Card>
+          ))}
+          
+          {/* Create Project Card */}
+          <Card className="max-w-md cursor-pointer hover:shadow-lg transition-shadow" onClick={handleCreateProject}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
-              Create Your First Project
+              {projects.length > 0 ? "Create New Project" : "Create Your First Project"}
             </CardTitle>
             <CardDescription>
               Set up a new AI agent project with data quality monitoring
@@ -92,12 +170,19 @@ export default function Home() {
             <p className="text-sm text-gray-600 mb-4">
               Projects help you organize and monitor your AI agents, track data quality, and manage incidents.
             </p>
-            <Button className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Project
-            </Button>
+            <div className="w-full py-2 text-center text-blue-600 font-medium">
+              Click to create →
+            </div>
           </CardContent>
         </Card>
+        </div>
+        
+        {/* Create Project Modal */}
+        <CreateProjectModal
+          open={isCreateProjectModalOpen}
+          onOpenChange={setIsCreateProjectModalOpen}
+          onProjectCreated={handleProjectCreated}
+        />
       </div>
     );
   }
@@ -238,6 +323,13 @@ export default function Home() {
           )}
         </CardContent>
       </Card>
+      
+      {/* Create Project Modal */}
+      <CreateProjectModal
+        open={isCreateProjectModalOpen}
+        onOpenChange={setIsCreateProjectModalOpen}
+        onProjectCreated={handleProjectCreated}
+      />
     </div>
   );
 }

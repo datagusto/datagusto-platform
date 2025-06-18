@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronDown, Check, FolderOpen, Plus } from "lucide-react";
+import { ChevronDown, Check, FolderOpen, Plus, LayoutGrid } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { projectService } from "@/services";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import type { UserProjectInfo } from "@/types";
 
 interface ProjectSwitcherProps {
@@ -20,7 +21,8 @@ export function ProjectSwitcher({
   onCreateProject,
   refreshTrigger
 }: ProjectSwitcherProps) {
-  const { currentOrganization } = useAuth();
+  const { currentOrganization, setCurrentProject } = useAuth();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [projects, setProjects] = useState<UserProjectInfo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -104,7 +106,7 @@ export function ProjectSwitcher({
                 onCreateProject();
                 setIsOpen(false);
               }}
-              className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 transition-colors border-b border-gray-100"
+              className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-md flex-shrink-0">
                 <Plus className="h-4 w-4 text-blue-600" />
@@ -116,6 +118,29 @@ export function ProjectSwitcher({
                 </div>
                 <div className="text-xs text-gray-500">
                   Set up a new AI agent project
+                </div>
+              </div>
+            </button>
+
+            {/* View all projects option */}
+            <button
+              onClick={() => {
+                setCurrentProject(null);
+                router.push('/home');
+                setIsOpen(false);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 transition-colors border-b border-gray-100"
+            >
+              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-md flex-shrink-0">
+                <LayoutGrid className="h-4 w-4 text-gray-600" />
+              </div>
+              
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-gray-700">
+                  View all projects
+                </div>
+                <div className="text-xs text-gray-500">
+                  Browse and manage projects
                 </div>
               </div>
             </button>
