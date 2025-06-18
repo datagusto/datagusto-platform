@@ -5,3 +5,5 @@ from app.models.organization_member import OrganizationMember
 from app.models.project import Project
 from app.models.project_member import ProjectMember
 from app.models.trace import Trace, Observation
+from app.models.guardrail import Guardrail
+from app.models.audit_log import AuditLog

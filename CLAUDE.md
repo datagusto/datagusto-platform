@@ -187,19 +187,19 @@ docker compose up postgres
 cd backend
 
 # Install dependencies (requires Python 3.10+)
-pip install -e .
+uv install
 
 # Run database migrations
-alembic upgrade head
+uv run alembic upgrade head
 
 # Start development server
-uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload
 
 # Run tests
-pytest
+uv run pytest
 
 # Generate new migration
-alembic revision --autogenerate -m "description"
+uv run alembic revision --autogenerate -m "description"
 ```
 
 ### Frontend Development

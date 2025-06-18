@@ -32,3 +32,5 @@ class Project(Base):
     organization = relationship("Organization", back_populates="projects")
     members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
     traces = relationship("Trace", back_populates="project", cascade="all, delete-orphan")
+    guardrails = relationship("Guardrail", back_populates="project", cascade="all, delete-orphan")
+    audit_logs = relationship("AuditLog", back_populates="project", cascade="all, delete-orphan")
