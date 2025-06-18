@@ -4,7 +4,6 @@ services:
   # PostgreSQL database
   postgres:
     image: postgres:15-alpine
-    container_name: datagusto-postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -39,7 +38,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: datagusto-backend
     ports:
       - "8000:8000"
     volumes:
@@ -60,7 +58,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: datagusto-frontend
     ports:
       - "3000:3000"
     volumes:
