@@ -1,4 +1,5 @@
 .env
+.env.production
 .DS_Store
 .venv
 .cursor/mcp.json

@@ -5,7 +5,7 @@ import type { LoginCredentials, RegisterData, TokenResponse, User, ApiError } fr
  * Matches the backend API specification exactly
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const API_VERSION = process.env.NEXT_PUBLIC_API_VERSION || 'v1';
 
 // Helper function to handle API responses

@@ -14,13 +14,13 @@ app = FastAPI(
     redoc_url="/redoc" if os.environ.get("DEBUG") else None,
 )
 
-# Set up CORS with more secure configuration
+# Set up CORS using configuration settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://cloud.datagusto.ai", "http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "Accept"],
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+    allow_methods=settings.CORS_ALLOW_METHODS,
+    allow_headers=settings.CORS_ALLOW_HEADERS,
 )
 
 # Include API router
