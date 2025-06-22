@@ -747,3 +747,51 @@ fix: improve data quality analysis performance
 - Batch analyze traces for better performance
 - Fixed UI alignment issues
 ```
+
+## 📝 Additional Project-Specific Rules
+
+### Test Environment Management
+**When creating tests:**
+1. Always use PostgreSQL for test database (not SQLite or in-memory DB)
+2. Create separate docker-compose.test.yml for test environment
+3. Use different ports for test services to avoid conflicts (e.g., 5433 for test PostgreSQL)
+4. Create setup/cleanup scripts for test environment management
+5. Set environment variables BEFORE importing app modules in conftest.py
+
+**Test script structure:**
+```bash
+scripts/
+├── test_setup.sh     # Initialize test environment
+├── test_cleanup.sh   # Clean up after tests
+└── run_tests.sh      # Main test runner with options
+```
+
+### Testing Workflow
+1. Always verify the actual implementation before writing tests
+2. Create comprehensive test plans and get them reviewed before implementation
+3. Test one component at a time and verify it works before moving to the next
+4. Use proper PostgreSQL test database with migrations, not mock databases
+
+### Backend Refactoring Guidelines
+**Layered Architecture Implementation:**
+1. API Layer must NOT call Repository layer directly - always use Service layer
+2. Create Service classes with dependency injection pattern
+3. Use FastAPI Depends() for service injection in endpoints
+4. Service layer handles business logic and orchestrates repository calls
+5. Create dedicated dependency injection functions in app/core/dependencies.py
+6. Update all API endpoints to use service layer instead of direct repository access
+
+**Service Layer Standards:**
+- Constructor-based dependency injection for repositories
+- Comprehensive docstrings with Args, Returns, Raises sections
+- Proper exception handling with HTTPException
+- Clear separation of business logic from API concerns
+- Transaction management at service layer (commit/rollback)
+
+**Refactoring Process:**
+1. Create Service class with proper dependency injection
+2. Write comprehensive unit tests for the service
+3. Update API endpoints to use service instead of repositories
+4. Update dependency injection in app/core/dependencies.py
+5. Run tests to verify refactoring didn't break functionality
+6. Never skip testing step - always verify with unit tests

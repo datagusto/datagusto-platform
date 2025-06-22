@@ -6,6 +6,7 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
+from app.core.dependencies import get_trace_service
 from app.models.user import User
 from app.schemas.trace import Trace, TraceSyncStatus, TraceWithObservations
 from app.services.trace_service import TraceService
@@ -18,6 +19,7 @@ router = APIRouter()
 async def manual_sync_traces(
     project_id: UUID,
     current_user: User = Depends(get_current_user),
+    trace_service: TraceService = Depends(get_trace_service),
     db: Session = Depends(get_db),
 ) -> Any:
     """
@@ -41,7 +43,7 @@ async def manual_sync_traces(
         project is not configured for Langfuse
     """
     try:
-        sync_result = await TraceService.sync_traces(
+        sync_result = await trace_service.sync_traces(
             str(project_id), str(current_user.id), db
         )
 
@@ -66,6 +68,7 @@ async def manual_sync_traces(
 async def get_project_traces(
     project_id: UUID,
     current_user: User = Depends(get_current_user),
+    trace_service: TraceService = Depends(get_trace_service),
     db: Session = Depends(get_db),
     limit: int = 50,
     offset: int = 0,
@@ -87,7 +90,7 @@ async def get_project_traces(
         HTTPException: If project not found or user lacks access
     """
     try:
-        traces = await TraceService.get_traces_by_project(
+        traces = await trace_service.get_traces_by_project(
             str(project_id), str(current_user.id), db, limit, offset
         )
         return traces
@@ -106,6 +109,7 @@ async def get_trace_detail(
     project_id: UUID,
     trace_id: UUID,
     current_user: User = Depends(get_current_user),
+    trace_service: TraceService = Depends(get_trace_service),
     db: Session = Depends(get_db),
 ) -> Any:
     """
@@ -124,7 +128,7 @@ async def get_trace_detail(
         HTTPException: If trace not found or user lacks access
     """
     try:
-        trace = await TraceService.get_trace_with_observations(
+        trace = await trace_service.get_trace_with_observations(
             str(trace_id), str(current_user.id), db
         )
 
@@ -149,6 +153,7 @@ async def get_trace_observations(
     project_id: UUID,
     trace_id: UUID,
     current_user: User = Depends(get_current_user),
+    trace_service: TraceService = Depends(get_trace_service),
     db: Session = Depends(get_db),
 ) -> Any:
     """
@@ -168,7 +173,7 @@ async def get_trace_observations(
     """
     try:
         # Get trace with observations
-        trace = await TraceService.get_trace_with_observations(
+        trace = await trace_service.get_trace_with_observations(
             str(trace_id), str(current_user.id), db
         )
 
@@ -254,6 +259,7 @@ async def reanalyze_trace_quality(
     project_id: UUID,
     trace_id: UUID,
     current_user: User = Depends(get_current_user),
+    trace_service: TraceService = Depends(get_trace_service),
     db: Session = Depends(get_db),
 ) -> Any:
     """
@@ -277,7 +283,7 @@ async def reanalyze_trace_quality(
     """
     try:
         # Get trace with observations
-        trace = await TraceService.get_trace_with_observations(
+        trace = await trace_service.get_trace_with_observations(
             str(trace_id), str(current_user.id), db
         )
 
@@ -325,6 +331,7 @@ async def reanalyze_trace_quality(
 async def get_project_quality_summary(
     project_id: UUID,
     current_user: User = Depends(get_current_user),
+    trace_service: TraceService = Depends(get_trace_service),
     db: Session = Depends(get_db),
 ) -> Any:
     """
@@ -347,7 +354,7 @@ async def get_project_quality_summary(
     """
     try:
         # Get all traces for the project
-        traces = await TraceService.get_traces_by_project(
+        traces = await trace_service.get_traces_by_project(
             str(project_id), str(current_user.id), db, limit=1000, offset=0
         )
 
