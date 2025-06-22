@@ -9,6 +9,7 @@ dependencies = [
     "uvicorn>=0.27.0",
     "sqlalchemy>=2.0.27",
     "alembic>=1.13.1",
+    "asyncpg>=0.30.0",
     "pydantic[email]>=2.6.1",
     "python-dotenv>=1.0.0",
     "supabase>=2.2.0",
@@ -34,6 +35,8 @@ packages = ["app"]
 
 [dependency-groups]
 test = [
+    "factory-boy>=3.3.3",
+    "freezegun>=1.5.2",
     "httpx>=0.28.1",
     "pytest>=8.3.5",
     "pytest-asyncio>=1.0.0",
