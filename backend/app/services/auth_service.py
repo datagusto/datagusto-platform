@@ -14,7 +14,7 @@ from app.core.security import (
     create_access_token, 
     create_refresh_token,
     ACCESS_TOKEN_EXPIRE_MINUTES,
-    REFRESH_TOKEN_EXPIRE_MINUTES
+    REFRESH_TOKEN_EXPIRE_DAYS
 )
 
 
@@ -129,7 +129,7 @@ class AuthService:
         )
         
         # Create refresh token
-        refresh_token_expires = timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
+        refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
         refresh_token = create_refresh_token(
             data={"sub": str(user.id)}, expires_delta=refresh_token_expires
         )
