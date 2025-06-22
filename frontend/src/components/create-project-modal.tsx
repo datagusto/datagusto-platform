@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { projectService } from "@/services";
+import { useCreateProject } from "@/hooks/use-projects";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +46,7 @@ const PLATFORM_OPTIONS = [
 
 export function CreateProjectModal({ open, onOpenChange, onProjectCreated }: CreateProjectModalProps) {
   const { currentOrganization } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const createProjectMutation = useCreateProject();
 
   const form = useForm<FormData>({
     defaultValues: {
@@ -62,38 +61,36 @@ export function CreateProjectModal({ open, onOpenChange, onProjectCreated }: Cre
 
   const selectedPlatform = form.watch("platform_type");
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = (data: FormData) => {
     if (!currentOrganization) return;
 
-    setIsSubmitting(true);
-    try {
-      // Build platform config for Langfuse
-      const platform_config = {
-        public_key: data.langfuse_public_key,
-        secret_key: data.langfuse_secret_key,
-        url: data.langfuse_url,
-      };
+    // Build platform config for Langfuse
+    const platform_config = {
+      public_key: data.langfuse_public_key,
+      secret_key: data.langfuse_secret_key,
+      url: data.langfuse_url,
+    };
 
-      const projectData: ProjectCreateData = {
-        name: data.name,
-        description: data.description || undefined,
-        organization_id: currentOrganization.id,
-        platform_type: data.platform_type,
-        platform_config,
-      };
+    const projectData: ProjectCreateData = {
+      name: data.name,
+      description: data.description || undefined,
+      organization_id: currentOrganization.id,
+      platform_type: data.platform_type,
+      platform_config,
+    };
 
-      const newProject = await projectService.createProject(projectData);
-
-      // Reset form and close modal
-      form.reset();
-      onOpenChange(false);
-      onProjectCreated?.(newProject);
-    } catch (error) {
-      console.error('Failed to create project:', error);
-      // TODO: Add proper error handling/toast
-    } finally {
-      setIsSubmitting(false);
-    }
+    createProjectMutation.mutate(projectData, {
+      onSuccess: (newProject) => {
+        // Reset form and close modal
+        form.reset();
+        onOpenChange(false);
+        onProjectCreated?.(newProject);
+      },
+      onError: (error) => {
+        console.error('Failed to create project:', error);
+        // TODO: Add proper error handling/toast
+      },
+    });
   };
 
   const renderPlatformConfig = () => {
@@ -260,12 +257,12 @@ export function CreateProjectModal({ open, onOpenChange, onProjectCreated }: Cre
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
+                disabled={createProjectMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" disabled={createProjectMutation.isPending}>
+                {createProjectMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create Project
               </Button>
             </DialogFooter>
