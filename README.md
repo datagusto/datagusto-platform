@@ -10,6 +10,16 @@
 
 datagusto provides step-by-step visibility into why AI agents fail — not just when they fail — with automated guardrails that prevent issues in real-time.
 
+## Limitations
+This product is designed to run analysis based on log data from LangFuse, so it requires an AI Agent managed by LangFuse and a properly configured LangFuse setup as prerequisites.
+Prerequisites:
+
+- An AI Agent that is actively managed and monitored through LangFuse
+- A complete LangFuse setup with proper configuration and integration
+- Active logging of agent interactions and performance data in LangFuse
+
+The analysis functionality depends entirely on the availability and quality of the log data that LangFuse collects from your AI Agent operations.
+
 ## News
 - <b>June 18, 2025</b>: Major update to support guardrails. Now you can control your AI agents based on data quality!
 

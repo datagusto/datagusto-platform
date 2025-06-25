@@ -27,6 +27,7 @@ export interface ProjectMember {
 export interface UserProjectInfo {
   project: Project;
   membership: ProjectMember;
+  is_owner?: boolean;
 }
 
 export interface ProjectWithMembers extends Project {

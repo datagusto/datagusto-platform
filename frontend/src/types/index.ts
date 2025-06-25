@@ -33,6 +33,7 @@ export type {
 export type {
   Trace,
   Observation,
+  QualityIssue,
   TraceSyncStatus,
   TraceListResponse
 } from './trace';

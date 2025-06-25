@@ -1,21 +1,23 @@
 from typing import Dict, Any, Optional, List
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from uuid import UUID
 
 from app.models.user import User as UserModel
+from app.repositories.base_repository import BaseRepository
 
 
-class UserRepository:
+class UserRepository(BaseRepository[UserModel]):
     """Repository for database user operations."""
     
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         """
         Initialize the repository with a database session.
         
         Args:
-            db: Database session
+            db: Async database session
         """
-        self.db = db
+        super().__init__(db, UserModel)
     
     async def create_user(self, user_data: Dict[str, Any]) -> UserModel:
         """
