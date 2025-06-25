@@ -1,6 +1,6 @@
 <p align="center">
     <h1 align="center"><b>datagusto</b></h1>
-    <h3 align="center">Trace, Diagnose and Prevent AI Agents Unpredictability</h3>
+    <h3 align="center">Evals, Monitoring and Prevent AI Agents Unpredictable Data Error</h3>
 </p>
 
 
@@ -8,7 +8,7 @@
 | <a href="#"><b>Quickstart</b></a> | <a href="#"><b>Documentation</b></a> | <a href="https://www.datagusto.ai"><b>Web Site</b></a> | <a href="https://datagusto.featurebase.app/"><b>Send Feedback</b></a> | 
 </p>
 
-datagusto provides step-by-step visibility into why AI agents fail — not just when they fail — with automated guardrails that prevent issues in real-time.
+datagusto is an AI orchestration platform that automatically routes AI agents through different processing workflows based on real-time data quality scores.
 
 ## Limitations
 This product is designed to run analysis based on log data from LangFuse, so it requires an AI Agent managed by LangFuse and a properly configured LangFuse setup as prerequisites.
