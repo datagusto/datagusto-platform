@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # Nginx reverse proxy with automatic SSL/TLS from Let's Encrypt
+  nginx-proxy:
+    image: jwilder/nginx-proxy:alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/vhost.d:/etc/nginx/vhost.d
+      - ./nginx/html:/usr/share/nginx/html
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    labels:
+      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy"
+    environment:
+      - DEFAULT_HOST=app.datagusto.io
+    restart: unless-stopped
+    networks:
+      - datagusto-network
+
+  # Let's Encrypt companion for automatic SSL certificate management
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: letsencrypt-companion
+    depends_on:
+      - nginx-proxy
+    volumes:
+      - ./nginx/certs:/etc/nginx/certs:rw
+      - ./nginx/vhost.d:/etc/nginx/vhost.d
+      - ./nginx/html:/usr/share/nginx/html
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DEFAULT_EMAIL=${LETSENCRYPT_EMAIL}
+    restart: unless-stopped
+    networks:
+      - datagusto-network
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-datagusto}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - datagusto-network
+    # No ports exposed - database only accessible within Docker network
+
+  # Migration service to run before backend
+  backend-migrations:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    command: ["sh", "-c", "PYTHONPATH=/app alembic upgrade head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-datagusto}
+    networks:
+      - datagusto-network
+
+  # Main backend service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    expose:
+      - "8000"
+    depends_on:
+      backend-migrations:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-datagusto}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_REFRESH_SECRET_KEY: ${JWT_REFRESH_SECRET_KEY}
+      ENABLE_REGISTRATION: ${ENABLE_REGISTRATION:-false}
+      PYTHONUNBUFFERED: 1
+      DEBUG: "false"
+      # Add any other production environment variables
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # nginx-proxy environment variables
+      VIRTUAL_HOST: api.datagusto.io
+      VIRTUAL_PORT: 8000
+      LETSENCRYPT_HOST: api.datagusto.io
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+    restart: unless-stopped
+    networks:
+      - datagusto-network
+
+  # Frontend service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        NEXT_PUBLIC_API_URL: https://api.datagusto.io
+        NEXT_PUBLIC_API_VERSION: v1
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: production
+      # nginx-proxy environment variables
+      VIRTUAL_HOST: app.datagusto.io
+      VIRTUAL_PORT: 3000
+      LETSENCRYPT_HOST: app.datagusto.io
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+    restart: unless-stopped
+    networks:
+      - datagusto-network
+
+volumes:
+  postgres_data:
+
+networks:
+  datagusto-network:
+    driver: bridge

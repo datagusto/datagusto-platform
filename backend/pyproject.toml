@@ -1,0 +1,65 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "TodoApp backend with FastAPI and Supabase"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.27.0",
+    "sqlalchemy[asyncio]>=2.0.27",
+    "alembic>=1.13.1",
+    "asyncpg>=0.30.0",
+    "pydantic[email]>=2.6.1",
+    "python-dotenv>=1.0.0",
+    "supabase>=2.2.0",
+    "psycopg2-binary>=2.9.9",
+    "python-jose>=3.3.0",
+    "passlib>=1.7.4",
+    "httpx>=0.24.1",
+    "python-multipart>=0.0.6",
+    "pydantic-settings>=2.8.1",
+    "bcrypt>=4.3.0",
+    "requests>=2.32.3",
+    "langchain-openai>=0.3.14",
+    "pytest-asyncio>=1.0.0",
+    "pandas>=2.0.0",
+    "langgraph>=0.6.7",
+    "langchain-anthropic>=0.3.19",
+    "langgraph-checkpoint-postgres>=2.0.23",
+    "psycopg[binary,pool]>=3.2.9",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.13.2",
+]
+test = [
+    "factory-boy>=3.3.3",
+    "freezegun>=1.5.2",
+    "httpx>=0.28.1",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=1.0.0",
+    "pytest-mock>=3.14.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+log_cli_level = "INFO"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "security: Security tests",
+]
+asyncio_default_fixture_loop_scope = "function"

@@ -1,0 +1,14 @@
+.env
+.env.production
+.DS_Store
+.venv
+.cursor/mcp.json
+**/dist/
+**/build/
+./volumes/
+./docker/volumes/db/data
+.cursor
+
+# Python egg-info directories
+*.egg-info/
+**/*.egg-info/
