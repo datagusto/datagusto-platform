@@ -6,23 +6,24 @@ accessible via Agent API keys. These endpoints are designed to be called
 by AI agents during their execution flow.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any
 from uuid import UUID
 
-from app.core.database import get_async_db
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.auth import get_current_agent_from_api_key
+from app.core.database import get_async_db
 from app.schemas.guardrail_evaluation import (
     GuardrailEvaluationRequest,
     GuardrailEvaluationResponse,
 )
-from app.services.guardrail_evaluation_service import GuardrailEvaluationService
 from app.services.guardrail_evaluation.exceptions import (
-    GuardrailEvaluationError,
-    FieldPathResolutionError,
     ConditionEvaluationError,
+    FieldPathResolutionError,
+    GuardrailEvaluationError,
 )
+from app.services.guardrail_evaluation_service import GuardrailEvaluationService
 
 router = APIRouter()
 
@@ -167,6 +168,7 @@ async def evaluate_guardrails(
     except Exception as e:
         # Unexpected errors
         import logging
+
         logger = logging.getLogger(__name__)
         logger.error(f"Unexpected error in guardrail evaluation: {str(e)}")
         raise HTTPException(

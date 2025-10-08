@@ -5,8 +5,9 @@ This module provides helper functions for assertions, mock data creation,
 and common test operations.
 """
 
-from typing import Any, Dict
+from typing import Any
 from uuid import UUID, uuid4
+
 from httpx import Response
 
 
@@ -76,7 +77,7 @@ def create_mock_user(
     email: str = "test@example.com",
     name: str = "Test User",
     **kwargs,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Factory function for creating mock user data.
 
@@ -115,7 +116,7 @@ def create_mock_organization(
     name: str = "Test Organization",
     slug: str = "test-org",
     **kwargs,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Factory function for creating mock organization data.
 
@@ -149,7 +150,7 @@ def create_mock_organization(
 
 
 def assert_user_response(
-    response_data: Dict[str, Any], expected_user: Dict[str, Any]
+    response_data: dict[str, Any], expected_user: dict[str, Any]
 ) -> None:
     """
     Assert that response data matches expected user structure.
@@ -172,7 +173,7 @@ def assert_user_response(
 
 
 def assert_organization_response(
-    response_data: Dict[str, Any], expected_org: Dict[str, Any]
+    response_data: dict[str, Any], expected_org: dict[str, Any]
 ) -> None:
     """
     Assert that response data matches expected organization structure.

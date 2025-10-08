@@ -6,20 +6,19 @@ This repository handles operations for the User model and its related tables
 operations in a multi-tenant environment.
 """
 
-from typing import Optional, List
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import joinedload
 from uuid import UUID
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
+
+from app.models.organization import OrganizationMember
 from app.models.user import (
     User,
-    UserLoginPassword,
     UserActiveStatus,
-    UserSuspension,
     UserArchive,
+    UserLoginPassword,
 )
-from app.models.organization import OrganizationMember
 from app.repositories.base_repository import BaseRepository
 
 
@@ -35,7 +34,7 @@ class UserRepository(BaseRepository[User]):
         """
         super().__init__(db, User)
 
-    async def get_by_id_with_relations(self, user_id: UUID) -> Optional[User]:
+    async def get_by_id_with_relations(self, user_id: UUID) -> User | None:
         """
         Get user by ID with all related data (profile, login, status).
 
@@ -57,7 +56,7 @@ class UserRepository(BaseRepository[User]):
         result = await self.db.execute(stmt)
         return result.unique().scalar_one_or_none()
 
-    async def get_by_email(self, email: str) -> Optional[User]:
+    async def get_by_email(self, email: str) -> User | None:
         """
         Get user by email address (queries UserLoginPassword table).
 
@@ -73,7 +72,7 @@ class UserRepository(BaseRepository[User]):
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_by_email_with_relations(self, email: str) -> Optional[User]:
+    async def get_by_email_with_relations(self, email: str) -> User | None:
         """
         Get user by email with all related data.
 
@@ -110,20 +109,6 @@ class UserRepository(BaseRepository[User]):
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none() is not None
 
-    async def is_suspended(self, user_id: UUID) -> bool:
-        """
-        Check if user is currently suspended (has suspension record).
-
-        Args:
-            user_id: User UUID
-
-        Returns:
-            True if suspended, False otherwise
-        """
-        stmt = select(UserSuspension).where(UserSuspension.user_id == user_id)
-        result = await self.db.execute(stmt)
-        return result.scalar_one_or_none() is not None
-
     async def is_archived(self, user_id: UUID) -> bool:
         """
         Check if user is archived (soft deleted).
@@ -138,31 +123,13 @@ class UserRepository(BaseRepository[User]):
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none() is not None
 
-    async def get_active_suspension(self, user_id: UUID) -> Optional[UserSuspension]:
-        """
-        Get user's most recent suspension if any.
-
-        Args:
-            user_id: User UUID
-
-        Returns:
-            Most recent suspension or None
-        """
-        stmt = (
-            select(UserSuspension)
-            .where(UserSuspension.user_id == user_id)
-            .order_by(UserSuspension.created_at.desc())
-        )
-        result = await self.db.execute(stmt)
-        return result.scalar_one_or_none()
-
     async def list_by_organization(
         self,
         organization_id: UUID,
         include_inactive: bool = False,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[User]:
+    ) -> list[User]:
         """
         List users in an organization with optional filtering.
 

@@ -80,8 +80,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
         - Provides visual debugging interface for queries and mutations
         - Access by clicking the React Query icon in bottom-right corner
         - Shows query keys, cached data, fetch status, and refetch controls
+        - Disabled in Docker environment via NEXT_PUBLIC_DISABLE_DEVTOOLS env var
       */}
-      <ReactQueryDevtools initialIsOpen={false} />
+      {process.env.NEXT_PUBLIC_DISABLE_DEVTOOLS !== 'true' && (
+        <ReactQueryDevtools initialIsOpen={false} />
+      )}
     </QueryClientProvider>
   );
 }

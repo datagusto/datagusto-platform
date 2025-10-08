@@ -5,20 +5,20 @@ Tests verify database operations for the User model using PostgreSQL test databa
 with transaction rollback for isolation.
 """
 
-import pytest
 from uuid import UUID, uuid4
+
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.user_repository import UserRepository
 from tests.repositories.conftest import (
-    seed_test_user,
     build_user_data,
+    seed_test_user,
 )
 from tests.repositories.utils import (
     assert_user_matches,
     query_user_by_id,
 )
-
 
 # ============================================================================
 # Test: create() - Create user

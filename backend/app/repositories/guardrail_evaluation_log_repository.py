@@ -4,10 +4,10 @@ Guardrail Evaluation Log repository for database operations.
 This repository handles CRUD operations for the GuardrailEvaluationLog model.
 """
 
-from typing import Optional
 from uuid import UUID
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 
 from app.models.guardrail_evaluation_log import GuardrailEvaluationLog
 from app.repositories.base_repository import BaseRepository
@@ -25,7 +25,7 @@ class GuardrailEvaluationLogRepository(BaseRepository[GuardrailEvaluationLog]):
         """
         super().__init__(db, GuardrailEvaluationLog)
 
-    async def get_by_request_id(self, request_id: str) -> Optional[GuardrailEvaluationLog]:
+    async def get_by_request_id(self, request_id: str) -> GuardrailEvaluationLog | None:
         """
         Get evaluation log by request ID.
 

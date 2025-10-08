@@ -33,7 +33,7 @@ interface AssignGuardrailDialogProps {
 export function AssignGuardrailDialog({
   open,
   onOpenChange,
-  agentId,
+  agentId: _agentId,
   projectId,
   onAssign,
   assignedGuardrailIds,
@@ -42,7 +42,9 @@ export function AssignGuardrailDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [selectedGuardrailId, setSelectedGuardrailId] = useState<string | null>(null);
+  const [selectedGuardrailId, setSelectedGuardrailId] = useState<string | null>(
+    null
+  );
 
   // Fetch available guardrails when dialog opens
   useEffect(() => {
@@ -69,7 +71,9 @@ export function AssignGuardrailDialog({
         setGuardrails(available);
       } catch (err) {
         if (!isMounted) return;
-        setError(err instanceof Error ? err : new Error('Failed to load guardrails'));
+        setError(
+          err instanceof Error ? err : new Error('Failed to load guardrails')
+        );
       } finally {
         if (isMounted) {
           setIsFetching(false);
@@ -93,7 +97,9 @@ export function AssignGuardrailDialog({
       await onAssign(selectedGuardrailId);
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to assign guardrail'));
+      setError(
+        err instanceof Error ? err : new Error('Failed to assign guardrail')
+      );
     } finally {
       setIsLoading(false);
     }
@@ -166,7 +172,8 @@ export function AssignGuardrailDialog({
                   No available guardrails
                 </h4>
                 <p className="text-sm text-gray-600">
-                  All guardrails in this project are already assigned to this agent
+                  All guardrails in this project are already assigned to this
+                  agent
                 </p>
               </div>
             ) : (
@@ -188,7 +195,8 @@ export function AssignGuardrailDialog({
                           {guardrail.name}
                         </h4>
                         <p className="text-xs text-gray-500 mt-1">
-                          Created {new Date(guardrail.created_at).toLocaleDateString()}
+                          Created{' '}
+                          {new Date(guardrail.created_at).toLocaleDateString()}
                         </p>
                       </div>
                       {selectedGuardrailId === guardrail.id && (

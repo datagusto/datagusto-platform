@@ -8,7 +8,9 @@
 ./volumes/
 ./docker/volumes/db/data
 .cursor
+node_modules/
 
 # Python egg-info directories
 *.egg-info/
 **/*.egg-info/
+

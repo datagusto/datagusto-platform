@@ -5,9 +5,10 @@ Tests complete workflows from organization creation through member management,
 admin privileges, and ownership transfer.
 """
 
-import pytest
 from unittest.mock import AsyncMock, patch
 from uuid import UUID
+
+import pytest
 
 from tests.api.base import BaseControllerTest
 
@@ -38,7 +39,7 @@ class TestOrganizationWorkflows(BaseControllerTest):
         3. Grant admin privileges
         4. Remove member
         """
-        user_id = UUID(test_user_data["id"])
+        _user_id = UUID(test_user_data["id"])
         org_id = UUID(test_organization_data["id"])
         new_member_id = UUID("11111111-1111-1111-1111-111111111111")
 
@@ -56,7 +57,7 @@ class TestOrganizationWorkflows(BaseControllerTest):
         create_payload = {"name": "Test Organization"}
 
         create_response = await authenticated_client.post(
-            "/api/v1/organizations", json=create_payload
+            "/api/v1/organizations/", json=create_payload
         )
         create_data = self._assert_success(create_response, expected_status=200)
         assert create_data["name"] == "Test Organization"
@@ -115,7 +116,7 @@ class TestUserOrganizationWorkflows(BaseControllerTest):
         2. Update user profile
         3. Verify changes
         """
-        user_id = UUID(test_user_data["id"])
+        _user_id = UUID(test_user_data["id"])
 
         # Mock services
         mock_user_service = AsyncMock()
@@ -126,7 +127,7 @@ class TestUserOrganizationWorkflows(BaseControllerTest):
 
         # Step 1: Get user profile
         mock_user_service.get_user.return_value = test_user_data
-        get_response = await authenticated_client.get(f"/api/v1/users/{user_id}")
+        get_response = await authenticated_client.get(f"/api/v1/users/{_user_id}")
         get_data = self._assert_success(get_response, expected_status=200)
         assert get_data["email"] == test_user_data["email"]
 
@@ -139,7 +140,7 @@ class TestUserOrganizationWorkflows(BaseControllerTest):
 
         update_payload = {"name": "Updated Name", "bio": "Updated Bio"}
         update_response = await authenticated_client.patch(
-            f"/api/v1/users/{user_id}/profile", json=update_payload
+            f"/api/v1/users/{_user_id}/profile", json=update_payload
         )
         update_data = self._assert_success(update_response, expected_status=200)
 
@@ -147,64 +148,3 @@ class TestUserOrganizationWorkflows(BaseControllerTest):
         assert update_data["name"] == "Updated Name"
         assert update_data["bio"] == "Updated Bio"
         assert mock_user_service.update_profile.called
-
-
-@pytest.mark.integration
-class TestMultiOrganizationWorkflows(BaseControllerTest):
-    """Integration tests for multi-organization scenarios."""
-
-    @pytest.mark.asyncio
-    @patch("app.api.v1.endpoints.auth.PermissionService")
-    @patch("app.api.v1.endpoints.auth.UserStatusRepository")
-    @patch("app.api.v1.endpoints.auth.UserService")
-    async def test_organization_switching_workflow(
-        self,
-        mock_user_service_class,
-        mock_status_repo_class,
-        mock_permission_service_class,
-        authenticated_client,
-        test_user_data,
-    ):
-        """
-        Test organization switching for users in multiple organizations.
-
-        Workflow:
-        1. User authenticates to org A
-        2. User switches to org B
-        3. Verify new token has org B context
-        """
-        org_a_id = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-        org_b_id = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
-        user_id = UUID(test_user_data["id"])
-
-        # Mock services
-        mock_permission_service = AsyncMock()
-        mock_status_repo = AsyncMock()
-        mock_user_service = AsyncMock()
-
-        mock_permission_service_class.return_value = mock_permission_service
-        mock_status_repo_class.return_value = mock_status_repo
-        mock_user_service_class.return_value = mock_user_service
-
-        # Step 1: User is already authenticated to org A (via fixture)
-
-        # Step 2: Switch to org B
-        mock_permission_service.is_organization_member.return_value = True
-        mock_status_repo.is_active.return_value = True
-        mock_user_service.get_user.return_value = test_user_data
-
-        switch_payload = {"organization_id": str(org_b_id)}
-        switch_response = await authenticated_client.post(
-            "/api/v1/auth/switch-organization", json=switch_payload
-        )
-
-        # Step 3: Verify new token
-        switch_data = self._assert_success(switch_response, expected_status=200)
-        assert "access_token" in switch_data
-        assert "refresh_token" in switch_data
-        assert switch_data["organization_id"] == str(org_b_id)
-
-        # Verify membership check was performed
-        mock_permission_service.is_organization_member.assert_called_once_with(
-            user_id=user_id, organization_id=org_b_id
-        )

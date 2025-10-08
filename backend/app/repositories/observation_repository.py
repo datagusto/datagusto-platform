@@ -5,10 +5,10 @@ This repository handles operations for the Observation model, including
 CRUD operations, hierarchical queries, and archive management.
 """
 
-from typing import Optional, List, Dict, Any
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 from uuid import UUID
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.trace import Observation, ObservationArchive
 from app.repositories.base_repository import BaseRepository
@@ -31,8 +31,8 @@ class ObservationRepository(BaseRepository[Observation]):
         trace_id: UUID,
         page: int = 1,
         page_size: int = 20,
-        observation_type: Optional[str] = None,
-    ) -> tuple[List[Observation], int]:
+        observation_type: str | None = None,
+    ) -> tuple[list[Observation], int]:
         """
         Get observations by trace ID with pagination (flat list).
 
@@ -67,7 +67,7 @@ class ObservationRepository(BaseRepository[Observation]):
 
         return list(observations), total
 
-    async def get_tree_by_trace_id(self, trace_id: UUID) -> List[Observation]:
+    async def get_tree_by_trace_id(self, trace_id: UUID) -> list[Observation]:
         """
         Get observations by trace ID as a hierarchical tree.
 
@@ -89,7 +89,7 @@ class ObservationRepository(BaseRepository[Observation]):
         observations = result.scalars().all()
         return list(observations)
 
-    async def get_root_observations(self, trace_id: UUID) -> List[Observation]:
+    async def get_root_observations(self, trace_id: UUID) -> list[Observation]:
         """
         Get root observations (parent_observation_id is NULL) for a trace.
 
@@ -113,7 +113,7 @@ class ObservationRepository(BaseRepository[Observation]):
 
     async def get_child_observations(
         self, parent_observation_id: UUID
-    ) -> List[Observation]:
+    ) -> list[Observation]:
         """
         Get child observations for a parent observation.
 
@@ -142,13 +142,15 @@ class ObservationRepository(BaseRepository[Observation]):
         Returns:
             Number of child observations
         """
-        stmt = select(func.count()).select_from(Observation).where(
-            Observation.parent_observation_id == observation_id
+        stmt = (
+            select(func.count())
+            .select_from(Observation)
+            .where(Observation.parent_observation_id == observation_id)
         )
         result = await self.db.execute(stmt)
         return result.scalar_one()
 
-    async def calculate_duration(self, observation_id: UUID) -> Optional[float]:
+    async def calculate_duration(self, observation_id: UUID) -> float | None:
         """
         Calculate observation duration in seconds.
 
@@ -166,7 +168,7 @@ class ObservationRepository(BaseRepository[Observation]):
         return delta.total_seconds()
 
     async def archive(
-        self, observation_id: UUID, archived_by: Optional[UUID], reason: str
+        self, observation_id: UUID, archived_by: UUID | None, reason: str
     ) -> ObservationArchive:
         """
         Archive observation (create archive record).

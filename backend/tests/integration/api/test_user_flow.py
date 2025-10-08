@@ -5,9 +5,9 @@ Tests complete user management workflows end-to-end with real database.
 Covers profile retrieval, updates, password changes, and permission boundaries.
 """
 
-import pytest
 from uuid import UUID
 
+import pytest
 
 # Mark all tests as integration tests
 pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
@@ -58,7 +58,6 @@ async def test_get_user_profile_complete_flow(integration_client):
     assert profile["email"] == registration_data["email"]
     assert profile["name"] == registration_data["name"]
     assert profile["is_active"] is True
-    assert profile["is_suspended"] is False
     assert profile["is_archived"] is False
     assert "created_at" in profile
 

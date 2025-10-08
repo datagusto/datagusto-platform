@@ -43,7 +43,8 @@ export function useCreateGuardrail() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: GuardrailCreate) => guardrailService.createGuardrail(data),
+    mutationFn: (data: GuardrailCreate) =>
+      guardrailService.createGuardrail(data),
     onSuccess: (data, variables) => {
       // Invalidate guardrails list for this project
       queryClient.invalidateQueries({

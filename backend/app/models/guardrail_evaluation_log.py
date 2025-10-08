@@ -7,15 +7,15 @@ All evaluation requests are logged regardless of whether guardrails were trigger
 """
 
 from sqlalchemy import (
-    Column,
-    Text,
     Boolean,
+    Column,
     ForeignKey,
     Index,
+    Text,
     UniqueConstraint,
 )
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 from app.models.base import BaseModel, uuid_column
 
@@ -159,7 +159,9 @@ class GuardrailEvaluationLog(BaseModel):
     organization = relationship("Organization", backref="evaluation_logs")
 
     __table_args__ = (
-        UniqueConstraint("request_id", name="guardrail_evaluation_logs_request_id_unique"),
+        UniqueConstraint(
+            "request_id", name="guardrail_evaluation_logs_request_id_unique"
+        ),
         Index("guardrail_evaluation_logs_request_id_idx", "request_id"),
         Index("guardrail_evaluation_logs_agent_id_idx", "agent_id"),
         Index("guardrail_evaluation_logs_project_id_idx", "project_id"),

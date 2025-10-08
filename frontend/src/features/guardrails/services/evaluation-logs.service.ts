@@ -7,7 +7,7 @@
  * @module evaluation-logs.service
  */
 
-import { apiClient } from '@/shared/lib/api-client';
+import { get } from '@/shared/lib/api-client';
 import type { EvaluationLogsListResponse } from '../types/evaluation-log.types';
 
 /**
@@ -37,16 +37,13 @@ export async function fetchEvaluationLogsByAgent(
   page: number = 1,
   pageSize: number = 20
 ): Promise<EvaluationLogsListResponse> {
-  const response = await apiClient.get(
-    `/api/v1/guardrails/agents/${agentId}/evaluation-logs`,
-    {
-      params: {
-        page,
-        page_size: pageSize,
-      },
-    }
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    page_size: pageSize.toString(),
+  });
+  return get<EvaluationLogsListResponse>(
+    `/guardrails/agents/${agentId}/evaluation-logs?${queryParams}`
   );
-  return response.data;
 }
 
 /**
@@ -74,16 +71,13 @@ export async function fetchEvaluationLogsByProject(
   page: number = 1,
   pageSize: number = 20
 ): Promise<EvaluationLogsListResponse> {
-  const response = await apiClient.get(
-    `/api/v1/guardrails/projects/${projectId}/evaluation-logs`,
-    {
-      params: {
-        page,
-        page_size: pageSize,
-      },
-    }
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    page_size: pageSize.toString(),
+  });
+  return get<EvaluationLogsListResponse>(
+    `/guardrails/projects/${projectId}/evaluation-logs?${queryParams}`
   );
-  return response.data;
 }
 
 /**
@@ -104,8 +98,7 @@ export async function fetchEvaluationLogsByProject(
 export async function fetchEvaluationLogByRequestId(
   requestId: string
 ): Promise<EvaluationLogsListResponse['items'][0]> {
-  const response = await apiClient.get(
-    `/api/v1/guardrails/evaluation-logs/${requestId}`
+  return get<EvaluationLogsListResponse['items'][0]>(
+    `/guardrails/evaluation-logs/${requestId}`
   );
-  return response.data;
 }

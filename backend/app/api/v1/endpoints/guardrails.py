@@ -5,23 +5,24 @@ This module provides endpoints for guardrail management including CRUD operation
 and assignment management.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any
 from uuid import UUID
 
-from app.core.database import get_async_db
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.auth import require_organization_member
+from app.core.database import get_async_db
+from app.repositories.project_member_repository import ProjectMemberRepository
 from app.schemas.guardrail import (
-    GuardrailCreate,
-    GuardrailUpdate,
-    GuardrailResponse,
-    GuardrailListResponse,
     GuardrailAgentAssignmentCreate,
     GuardrailAgentAssignmentResponse,
+    GuardrailCreate,
+    GuardrailListResponse,
+    GuardrailResponse,
+    GuardrailUpdate,
 )
 from app.services.guardrail_service import GuardrailService
-from app.repositories.project_member_repository import ProjectMemberRepository
 
 router = APIRouter()
 

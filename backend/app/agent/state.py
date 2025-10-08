@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Sequence
+from typing import Annotated, Any
 
 from langchain_core.messages import AnyMessage
 from langgraph.graph import add_messages
 from langgraph.managed import IsLastStep
-from typing_extensions import Annotated
 
 
 @dataclass
@@ -55,12 +55,12 @@ class State(InputState):
 
     user_instruction: str = ""
 
-    all_ambiguities: List[Dict[str, Any]] = field(default_factory=list)
-    historical_resolutions: List[Dict[str, Any]] = field(default_factory=list)
-    resolved_ambiguities: List[Dict[str, Any]] = field(default_factory=list)
-    unresolved_ambiguities: List[Dict[str, Any]] = field(default_factory=list)
+    all_ambiguities: list[dict[str, Any]] = field(default_factory=list)
+    historical_resolutions: list[dict[str, Any]] = field(default_factory=list)
+    resolved_ambiguities: list[dict[str, Any]] = field(default_factory=list)
+    unresolved_ambiguities: list[dict[str, Any]] = field(default_factory=list)
     disambiguation_complete: bool = False
-    user_clarifications: List[str] = field(default_factory=list)
+    user_clarifications: list[str] = field(default_factory=list)
 
     # Additional attributes can be added here as needed.
     # Common examples include:

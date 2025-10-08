@@ -101,9 +101,7 @@ export default function AgentDetailPage() {
               {isLoading ? (
                 <div className="h-8 w-48 bg-gray-200 animate-pulse rounded"></div>
               ) : (
-                <h1 className="text-2xl font-bold">
-                  {agent?.name || 'Agent'}
-                </h1>
+                <h1 className="text-2xl font-bold">{agent?.name || 'Agent'}</h1>
               )}
             </div>
 

@@ -295,7 +295,8 @@ export default function ProjectAgentsPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {agent.api_key_count} key{agent.api_key_count !== 1 ? 's' : ''}
+                          {agent.api_key_count} key
+                          {agent.api_key_count !== 1 ? 's' : ''}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(agent.created_at).toLocaleDateString()}

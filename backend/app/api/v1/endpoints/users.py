@@ -5,23 +5,23 @@ This module provides endpoints for user profile management,
 password changes, and user administration.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Any, List
+from typing import Any
 from uuid import UUID
 
-from app.core.database import get_async_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.auth import get_current_user
+from app.core.database import get_async_db
 from app.schemas.user import (
     User,
-    UserProfileUpdate,
-    UserPasswordChange,
-    UserEmailChange,
-    UserSuspend,
     UserArchive,
+    UserEmailChange,
+    UserPasswordChange,
+    UserProfileUpdate,
 )
-from app.services.user_service import UserService
 from app.services.permission_service import PermissionService
+from app.services.user_service import UserService
 
 router = APIRouter()
 
@@ -161,56 +161,6 @@ async def change_email(
     return {"message": "Email changed successfully"}
 
 
-@router.post("/{user_id}/suspend", response_model=User)
-async def suspend_user(
-    user_id: UUID,
-    suspend_data: UserSuspend,
-    current_user: dict = Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
-) -> Any:
-    """
-    Suspend a user account.
-
-    Only organization owners or admins can suspend users.
-
-    Args:
-        user_id: User UUID to suspend
-        suspend_data: Suspension data
-        current_user: Current authenticated user
-        db: Database session
-
-    Returns:
-        Updated user data
-
-    Raises:
-        HTTPException: If user not found or access denied
-    """
-    current_user_id = UUID(current_user.get("id"))
-    org_id = current_user.get("organization_id")
-
-    if not org_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Organization context required",
-        )
-
-    # Check permission
-    permission_service = PermissionService(db)
-    if not await permission_service.is_admin_or_owner(UUID(org_id), current_user_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only organization owners or admins can suspend users",
-        )
-
-    user_service = UserService(db)
-    return await user_service.suspend_user(
-        user_id,
-        suspend_data.reason,
-        current_user_id,
-        suspend_data.suspended_until,
-    )
-
-
 @router.post("/{user_id}/archive", response_model=User)
 async def archive_user(
     user_id: UUID,
@@ -301,7 +251,7 @@ async def unarchive_user(
     return await user_service.unarchive_user(user_id)
 
 
-@router.get("/", response_model=List[User])
+@router.get("/", response_model=list[User])
 async def list_users(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),

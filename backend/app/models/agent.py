@@ -13,15 +13,15 @@ Models:
 """
 
 from sqlalchemy import (
+    TIMESTAMP,
     Column,
-    Text,
     ForeignKey,
     Index,
     String,
-    TIMESTAMP,
+    Text,
 )
-from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel, uuid_column
 

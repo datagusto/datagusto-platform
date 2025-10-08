@@ -5,11 +5,11 @@ This repository handles operations for the Trace model, including
 CRUD operations, filtering, and archive management.
 """
 
-from typing import Optional, List
 from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
 from uuid import UUID
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.trace import Trace, TraceArchive
 from app.repositories.base_repository import BaseRepository
@@ -32,10 +32,10 @@ class TraceRepository(BaseRepository[Trace]):
         agent_id: UUID,
         page: int = 1,
         page_size: int = 20,
-        status: Optional[str] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-    ) -> tuple[List[Trace], int]:
+        status: str | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+    ) -> tuple[list[Trace], int]:
         """
         Get traces by agent with pagination and filtering.
 
@@ -88,13 +88,15 @@ class TraceRepository(BaseRepository[Trace]):
         """
         from app.models.trace import Observation
 
-        stmt = select(func.count()).select_from(Observation).where(
-            Observation.trace_id == trace_id
+        stmt = (
+            select(func.count())
+            .select_from(Observation)
+            .where(Observation.trace_id == trace_id)
         )
         result = await self.db.execute(stmt)
         return result.scalar_one()
 
-    async def calculate_duration(self, trace_id: UUID) -> Optional[float]:
+    async def calculate_duration(self, trace_id: UUID) -> float | None:
         """
         Calculate trace duration in seconds.
 
@@ -112,7 +114,7 @@ class TraceRepository(BaseRepository[Trace]):
         return delta.total_seconds()
 
     async def archive(
-        self, trace_id: UUID, archived_by: Optional[UUID], reason: str
+        self, trace_id: UUID, archived_by: UUID | None, reason: str
     ) -> TraceArchive:
         """
         Archive trace (create archive record).

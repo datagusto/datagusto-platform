@@ -5,8 +5,9 @@ This service handles organization membership operations including
 adding/removing members and listing organization members.
 """
 
-from typing import List, Dict, Any
+from typing import Any
 from uuid import UUID
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,7 +48,7 @@ class OrganizationMemberService:
 
     async def add_member(
         self, organization_id: UUID, user_id: UUID, added_by: UUID
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Add a user as member of organization.
 
@@ -130,7 +131,7 @@ class OrganizationMemberService:
 
     async def list_members(
         self, organization_id: UUID, limit: int = 100, offset: int = 0
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         List all members of an organization.
 
@@ -178,7 +179,7 @@ class OrganizationMemberService:
 
     async def list_organizations_for_user(
         self, user_id: UUID, limit: int = 100, offset: int = 0
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         List all organizations a user is member of.
 

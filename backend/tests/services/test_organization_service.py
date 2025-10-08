@@ -4,16 +4,19 @@ OrganizationService unit tests.
 Tests organization management service methods with mocked repositories.
 """
 
-import pytest
 from unittest.mock import AsyncMock
 from uuid import uuid4
+
+import pytest
 from fastapi import HTTPException
 
 from tests.services.utils import OrganizationDataFactory, build_mock_organization_model
 
 
 @pytest.mark.asyncio
-async def test_get_organization_success(organization_service, mock_organization_repository):
+async def test_get_organization_success(
+    organization_service, mock_organization_repository
+):
     """Test successful organization retrieval."""
     # Arrange
     org_id = uuid4()
@@ -35,7 +38,9 @@ async def test_get_organization_success(organization_service, mock_organization_
 
 
 @pytest.mark.asyncio
-async def test_create_organization_success(organization_service, mock_organization_repository, mock_db_session):
+async def test_create_organization_success(
+    organization_service, mock_organization_repository, mock_db_session
+):
     """Test successful organization creation."""
     # Arrange
     org_id = uuid4()

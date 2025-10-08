@@ -113,12 +113,8 @@ export function CreateAgentDialog({
         >
           {/* Header */}
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-gray-900">
-              Add Agent
-            </h2>
-            <p className="mt-1 text-sm text-gray-600">
-              Register your AI agent
-            </p>
+            <h2 className="text-xl font-bold text-gray-900">Add Agent</h2>
+            <p className="mt-1 text-sm text-gray-600">Register your AI agent</p>
           </div>
 
           {/* Form */}

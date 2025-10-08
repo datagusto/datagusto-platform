@@ -15,15 +15,15 @@ Models:
 """
 
 from sqlalchemy import (
-    Column,
-    Text,
-    ForeignKey,
     BigInteger,
+    Column,
+    ForeignKey,
     Index,
+    Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel, uuid_column
 

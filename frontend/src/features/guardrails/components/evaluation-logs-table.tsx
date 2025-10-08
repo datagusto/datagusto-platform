@@ -18,7 +18,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchEvaluationLogsByAgent } from '../services/evaluation-logs.service';
-import type { GuardrailEvaluationLog } from '../types/evaluation-log.types';
 
 /**
  * Evaluation logs table props
@@ -193,14 +192,14 @@ export function EvaluationLogsTable({ agentId }: EvaluationLogsTableProps) {
                   <Badge variant="info">{log.process_type}</Badge>
                 </td>
                 <td className="px-4 py-3 text-sm">
-                  <Badge variant={log.timing === 'on_start' ? 'default' : 'warning'}>
+                  <Badge
+                    variant={log.timing === 'on_start' ? 'default' : 'warning'}
+                  >
                     {log.timing}
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-sm">
-                  <Badge
-                    variant={log.should_proceed ? 'success' : 'danger'}
-                  >
+                  <Badge variant={log.should_proceed ? 'success' : 'danger'}>
                     {log.should_proceed ? 'Proceed' : 'Blocked'}
                   </Badge>
                 </td>

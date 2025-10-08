@@ -11,7 +11,10 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createAPIKeySchema, type CreateAPIKeyFormData } from '../schemas/api-key.schema';
+import {
+  createAPIKeySchema,
+  type CreateAPIKeyFormData,
+} from '../schemas/api-key.schema';
 
 /**
  * Create API key form props
@@ -61,15 +64,13 @@ export function CreateAPIKeyForm({
           id="name"
           type="text"
           className="w-full border rounded-md px-3 py-2"
-          placeholder="Production API Key"
+          placeholder="Enter API key name"
           {...register('name')}
         />
         {errors.name && (
           <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>
         )}
-        <p className="mt-1 text-xs text-gray-500">
-          API keys never expire
-        </p>
+        <p className="mt-1 text-xs text-gray-500">API keys never expire</p>
       </div>
 
       {/* Submit Button */}

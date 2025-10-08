@@ -37,8 +37,7 @@ export const traceService = {
     if (params?.page_size)
       queryParams.append('page_size', params.page_size.toString());
     if (params?.status) queryParams.append('status', params.status);
-    if (params?.start_date)
-      queryParams.append('start_date', params.start_date);
+    if (params?.start_date) queryParams.append('start_date', params.start_date);
     if (params?.end_date) queryParams.append('end_date', params.end_date);
 
     const query = queryParams.toString();

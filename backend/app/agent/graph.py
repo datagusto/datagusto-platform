@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import datetime
-from typing import Any, Dict, Optional, TypedDict, cast
+from typing import Any, TypedDict, cast
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage
@@ -29,7 +29,7 @@ with open("session_store.json") as f:
     session_store = json.load(f)
 
 
-def _extract_from_markdown_block(text: str) -> Optional[Dict]:
+def _extract_from_markdown_block(text: str) -> dict | None:
     """Extract from markdown block."""
     pattern = r"```(?:json)?\s*\n?(.*?)\n?```"
     matches = re.findall(pattern, text, re.DOTALL | re.IGNORECASE)
@@ -51,7 +51,7 @@ class Context(TypedDict):
     my_configurable_param: str
 
 
-async def extract(state: State, runtime: Runtime[Context]) -> Dict[str, Any]:
+async def extract(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
     """Process input and returns output.
 
     Can use runtime context to alter behavior.
@@ -88,7 +88,7 @@ async def extract(state: State, runtime: Runtime[Context]) -> Dict[str, Any]:
     return {"all_ambiguities": result.get("all_ambiguities", [])}
 
 
-async def lookup(state: State, runtime: Runtime[Context]) -> Dict[str, Any]:
+async def lookup(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
     """Lookup the ambiguity."""
     global session_store
     all_ambiguities = state.all_ambiguities
@@ -106,7 +106,7 @@ async def lookup(state: State, runtime: Runtime[Context]) -> Dict[str, Any]:
     }
 
 
-async def resolve(state: State, runtime: Runtime[Context]) -> Dict[str, Any]:
+async def resolve(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
     """Process input and returns output.
 
     Can use runtime context to alter behavior.
@@ -160,25 +160,25 @@ async def should_clarify(state: State) -> bool:
     return "clarify"
 
 
-async def clarify(state: State, runtime: Runtime[Context]) -> Dict[str, Any]:
+async def clarify(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
     """Clarify the ambiguity."""
     message = AIMessage(content="Please clarify the ambiguity.")
     return {"messages": [message]}
 
 
-async def save(state: State, runtime: Runtime[Context]) -> Dict[str, Any]:
+async def save(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
     """Save the ambiguity."""
     global session_store
     for r in state.resolved_ambiguities:
         session_store[r["element"]] = r["resolved_value"]
     with open("session_store.json", "w") as f:
         json.dump(session_store, f, indent=2)
-    with open("session_store.json", "r") as f:
+    with open("session_store.json") as f:
         session_store = json.load(f)
     return {"messages": [AIMessage(content="Saving the ambiguity.")]}
 
 
-async def interrupt(state: State) -> Dict:
+async def interrupt(state: State) -> dict:
     """中断ポイント：質問を準備."""
     return {
         "clarification_questions": [

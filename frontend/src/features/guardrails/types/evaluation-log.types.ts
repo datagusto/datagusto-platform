@@ -26,7 +26,7 @@ export interface TriggeredGuardrail {
 export interface ActionResult {
   action_type: 'block' | 'warn' | 'modify';
   priority: number;
-  result: Record<string, any>;
+  result: Record<string, unknown>;
 }
 
 /**
@@ -53,7 +53,7 @@ export interface GuardrailEvaluationLog {
   should_proceed: boolean;
   log_data: {
     process_name: string;
-    request_context: Record<string, any>;
+    request_context: Record<string, unknown>;
     evaluated_guardrail_ids: string[];
     triggered_guardrail_ids: string[];
     evaluation_result: {

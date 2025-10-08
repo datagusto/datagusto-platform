@@ -256,9 +256,9 @@ export function useRegister() {
 
         // Select organization based on count
         if (organizations.length === 1) {
-          // Single organization: auto-select and go to dashboard
+          // Single organization: auto-select and go to organization projects page
           setCurrentOrganization(organizations[0].id);
-          router.push('/dashboard');
+          router.push(`/organizations/${organizations[0].id}`);
         } else if (organizations.length > 1) {
           // Multiple organizations: redirect to selection page (rare for new registration)
           router.push('/select-organization?from=register');

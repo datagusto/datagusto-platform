@@ -286,7 +286,11 @@ export async function apiClient<T>(
         );
 
         // Handle 401 Unauthorized - attempt token refresh
-        if (response.status === HTTP_STATUS.UNAUTHORIZED && !skipAuth && endpoint !== '/auth/refresh') {
+        if (
+          response.status === HTTP_STATUS.UNAUTHORIZED &&
+          !skipAuth &&
+          endpoint !== '/auth/refresh'
+        ) {
           const refreshToken = useAuthStore.getState().refreshToken;
 
           if (refreshToken) {
@@ -331,7 +335,7 @@ export async function apiClient<T>(
                   return data as T;
                 }
               }
-            } catch (refreshError) {
+            } catch {
               // Refresh failed, clear auth and redirect to login
               useAuthStore.getState().clearAuth();
               if (typeof window !== 'undefined') {

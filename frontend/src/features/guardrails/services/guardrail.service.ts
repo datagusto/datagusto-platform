@@ -94,10 +94,7 @@ export const guardrailService = {
    * @param reason - Optional reason for archiving
    * @returns Promise resolving when archive succeeds
    */
-  async archiveGuardrail(
-    guardrailId: string,
-    reason?: string
-  ): Promise<void> {
+  async archiveGuardrail(guardrailId: string, reason?: string): Promise<void> {
     return del(`/guardrails/${guardrailId}`, {
       body: reason ? JSON.stringify({ reason }) : undefined,
     });
@@ -120,7 +117,9 @@ export const guardrailService = {
     assigned_by: string;
     created_at: string;
   }> {
-    return post(`/guardrails/${guardrailId}/assignments`, { agent_id: agentId });
+    return post(`/guardrails/${guardrailId}/assignments`, {
+      agent_id: agentId,
+    });
   },
 
   /**
@@ -130,10 +129,7 @@ export const guardrailService = {
    * @param agentId - Agent UUID
    * @returns Promise resolving when unassignment succeeds
    */
-  async unassignFromAgent(
-    guardrailId: string,
-    agentId: string
-  ): Promise<void> {
+  async unassignFromAgent(guardrailId: string, agentId: string): Promise<void> {
     return del(`/guardrails/${guardrailId}/assignments/${agentId}`);
   },
 };

@@ -5,10 +5,10 @@ This repository handles operations for the ProjectOwner model,
 managing the 1:1 relationship between projects and their owners.
 """
 
-from typing import Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
 from uuid import UUID
+
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.project import ProjectOwner
 
@@ -25,7 +25,7 @@ class ProjectOwnerRepository:
         """
         self.db = db
 
-    async def get_by_project_id(self, project_id: UUID) -> Optional[ProjectOwner]:
+    async def get_by_project_id(self, project_id: UUID) -> ProjectOwner | None:
         """
         Get project owner by project ID.
 
@@ -77,9 +77,7 @@ class ProjectOwnerRepository:
             - Uses flush() to ensure changes are visible in same transaction
         """
         # Delete existing owner if any
-        delete_stmt = delete(ProjectOwner).where(
-            ProjectOwner.project_id == project_id
-        )
+        delete_stmt = delete(ProjectOwner).where(ProjectOwner.project_id == project_id)
         await self.db.execute(delete_stmt)
         await self.db.flush()
 

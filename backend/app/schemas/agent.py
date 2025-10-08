@@ -6,7 +6,6 @@ including API key management with security considerations.
 """
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -50,7 +49,7 @@ class AgentUpdate(BaseModel):
         >>> update_data = AgentUpdate(name="Updated Agent Name")
     """
 
-    name: Optional[str] = Field(
+    name: str | None = Field(
         None, min_length=1, max_length=255, description="Agent name"
     )
 
@@ -94,9 +93,7 @@ class AgentResponse(AgentBase):
     updated_at: datetime
     is_active: bool = Field(default=False, description="Computed from active_status")
     is_archived: bool = Field(default=False, description="Computed from archive")
-    api_key_count: int = Field(
-        default=0, description="Number of API keys (computed)"
-    )
+    api_key_count: int = Field(default=0, description="Number of API keys (computed)")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -117,10 +114,10 @@ class AgentAPIKeyCreate(BaseModel):
         - Plain text key is returned only once at creation
     """
 
-    name: Optional[str] = Field(
+    name: str | None = Field(
         None, max_length=255, description="Optional friendly name for the key"
     )
-    expires_in_days: Optional[int] = Field(
+    expires_in_days: int | None = Field(
         None, gt=0, le=365, description="Days until key expires (NULL = never expires)"
     )
 
@@ -162,15 +159,13 @@ class AgentAPIKeyResponse(BaseModel):
     id: UUID
     agent_id: UUID
     key_prefix: str = Field(..., description="First 12-16 chars of key")
-    name: Optional[str] = None
-    last_used_at: Optional[datetime] = None
-    expires_at: Optional[datetime] = None
+    name: str | None = None
+    last_used_at: datetime | None = None
+    expires_at: datetime | None = None
     created_by: UUID
     created_at: datetime
     updated_at: datetime
-    is_expired: bool = Field(
-        default=False, description="Computed: expires_at < now()"
-    )
+    is_expired: bool = Field(default=False, description="Computed: expires_at < now()")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -200,9 +195,7 @@ class AgentAPIKeyCreateResponse(AgentAPIKeyResponse):
         - Full key is needed for API authentication
     """
 
-    api_key: str = Field(
-        ..., description="Full API key (shown only once at creation)"
-    )
+    api_key: str = Field(..., description="Full API key (shown only once at creation)")
 
 
 class AgentArchiveRequest(BaseModel):
@@ -215,7 +208,7 @@ class AgentArchiveRequest(BaseModel):
         ... )
     """
 
-    reason: Optional[str] = Field(None, description="Reason for archiving")
+    reason: str | None = Field(None, description="Reason for archiving")
 
 
 class AgentListResponse(BaseModel):

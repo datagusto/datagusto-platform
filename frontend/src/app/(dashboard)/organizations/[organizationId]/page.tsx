@@ -11,11 +11,11 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/features/auth/stores';
 import { organizationService } from '@/features/auth/services';
 import { projectService } from '@/features/projects/services';
 import { CreateProjectDialog } from '@/features/projects/components';
-import type { Project } from '@/features/projects/types';
 
 /**
  * Organization projects page component
@@ -50,10 +50,6 @@ export default function OrganizationProjectsPage() {
     (state) => state.setCurrentOrganization
   );
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [organizationName, setOrganizationName] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   // Sync organization ID with Zustand store
@@ -63,59 +59,48 @@ export default function OrganizationProjectsPage() {
     }
   }, [organizationId, currentOrganizationId, setCurrentOrganization]);
 
-  // Fetch organization details and projects when organization ID is set
+  // Fetch organization details using TanStack Query
+  const {
+    data: organization,
+    isLoading: isLoadingOrg,
+    error: orgError,
+  } = useQuery({
+    queryKey: ['organization', currentOrganizationId],
+    queryFn: () =>
+      currentOrganizationId
+        ? organizationService.getOrganization(currentOrganizationId)
+        : Promise.reject(new Error('No organization ID')),
+    enabled: !!currentOrganizationId,
+    retry: 1,
+  });
+
+  // Fetch projects using TanStack Query
+  const {
+    data: projectsResponse,
+    isLoading: isLoadingProjects,
+    error: projectsError,
+  } = useQuery({
+    queryKey: ['projects', currentOrganizationId],
+    queryFn: () =>
+      projectService.listProjects({
+        is_active: true,
+        is_archived: false,
+      }),
+    enabled: !!currentOrganizationId,
+    retry: 1,
+  });
+
+  // Handle authentication errors
   useEffect(() => {
-    let isMounted = true;
-
-    async function fetchData() {
-      if (!currentOrganizationId) return;
-
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // Fetch organization details and projects in parallel
-        const [org, projectsResponse] = await Promise.all([
-          organizationService.getOrganization(currentOrganizationId),
-          projectService.listProjects({
-            is_active: true,
-            is_archived: false,
-          }),
-        ]);
-
-        if (!isMounted) return;
-
-        setOrganizationName(org.name);
-        setProjects(projectsResponse.items);
-      } catch (err) {
-        if (!isMounted) return;
-
-        console.error('Failed to fetch data:', err);
-
-        // Handle authentication errors by redirecting to login
-        if (err instanceof Error && err.message.includes('401')) {
-          router.push('/sign-in');
-          return;
-        }
-
-        setError(
-          err instanceof Error
-            ? err.message
-            : 'Failed to load data. Please try again.'
-        );
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+    if (orgError instanceof Error && orgError.message.includes('401')) {
+      router.push('/sign-in');
     }
+  }, [orgError, router]);
 
-    fetchData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [currentOrganizationId, router]);
+  const isLoading = isLoadingOrg || isLoadingProjects;
+  const error = orgError || projectsError;
+  const projects = projectsResponse?.items || [];
+  const organizationName = organization?.name || '';
 
   // Handle project navigation
   const handleGoToProject = (projectId: string) => {
@@ -229,7 +214,11 @@ export default function OrganizationProjectsPage() {
               />
             </svg>
             <h3 className="text-lg font-medium text-red-900 mb-2">Error</h3>
-            <p className="text-red-700">{error}</p>
+            <p className="text-red-700">
+              {error instanceof Error
+                ? error.message
+                : 'Failed to load data. Please try again.'}
+            </p>
           </div>
         )}
 
@@ -275,7 +264,8 @@ export default function OrganizationProjectsPage() {
                       <h3 className="text-lg font-semibold text-gray-900">
                         {project.name}
                       </h3>
-                      <button className="p-1 text-gray-400 hover:text-gray-900 transition-colors">
+                      {/* Settings icon - TODO: Implement project settings functionality */}
+                      {/* <button className="p-1 text-gray-400 hover:text-gray-900 transition-colors">
                         <svg
                           className="w-5 h-5"
                           fill="none"
@@ -295,7 +285,7 @@ export default function OrganizationProjectsPage() {
                             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                           />
                         </svg>
-                      </button>
+                      </button> */}
                     </div>
 
                     <button

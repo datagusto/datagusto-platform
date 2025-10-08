@@ -21,15 +21,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   createGuardrailSchema,
   type CreateGuardrailFormData,
-  type Condition,
-  type Action,
-  TriggerTypeEnum,
-  ConditionLogicEnum,
-  ConditionOperatorEnum,
-  ActionTypeEnum,
-  SeverityEnum,
-  ModificationTypeEnum,
-  ModifyConditionOperatorEnum,
 } from '../schemas/guardrail.schema';
 
 /**
@@ -125,7 +116,9 @@ export function CreateGuardrailForm({
 
       {/* Section 1: Basic Information */}
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold border-b pb-2">Basic Information</h2>
+        <h2 className="text-lg font-semibold border-b pb-2">
+          Basic Information
+        </h2>
 
         {/* Guardrail Name */}
         <div>
@@ -136,7 +129,7 @@ export function CreateGuardrailForm({
             id="name"
             type="text"
             className="w-full border rounded-md px-3 py-2"
-            placeholder="e.g., PII Detection, Harmful Content Filter"
+            placeholder="Enter guardrail name"
             {...register('name')}
           />
           {errors.name && (
@@ -146,24 +139,31 @@ export function CreateGuardrailForm({
 
         {/* Description */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium mb-1">
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium mb-1"
+          >
             Description
           </label>
           <textarea
             id="description"
             className="w-full border rounded-md px-3 py-2 min-h-20"
-            placeholder="Describe what this guardrail does..."
+            placeholder="Enter description"
             {...register('description')}
           />
           {errors.description && (
-            <p className="mt-1 text-xs text-red-600">{errors.description.message}</p>
+            <p className="mt-1 text-xs text-red-600">
+              {errors.description.message}
+            </p>
           )}
         </div>
       </section>
 
       {/* Section 2: Trigger Settings */}
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold border-b pb-2">Trigger Settings</h2>
+        <h2 className="text-lg font-semibold border-b pb-2">
+          Trigger Settings
+        </h2>
 
         {/* Timing */}
         <div>
@@ -194,7 +194,9 @@ export function CreateGuardrailForm({
           </div>
           {errors.definition?.trigger?.type && (
             <p className="mt-1 text-xs text-red-600">
-              {errors.definition.trigger.type.message}
+              {typeof errors.definition.trigger.type === 'object'
+                ? errors.definition.trigger.type.message
+                : errors.definition.trigger.type}
             </p>
           )}
         </div>
@@ -281,7 +283,7 @@ export function CreateGuardrailForm({
               <input
                 type="text"
                 className="w-full border rounded px-2 py-1 text-sm"
-                placeholder="e.g., input.query, data.users[0].email"
+                placeholder="Enter field path (e.g., input.query, data.users[0].email)"
                 {...register(
                   `definition.trigger.conditions.${index}.field` as const
                 )}
@@ -330,7 +332,10 @@ export function CreateGuardrailForm({
               </select>
               {errors.definition?.trigger?.conditions?.[index]?.operator && (
                 <p className="mt-1 text-xs text-red-600">
-                  {errors.definition.trigger.conditions[index]?.operator?.message}
+                  {
+                    errors.definition.trigger.conditions[index]?.operator
+                      ?.message
+                  }
                 </p>
               )}
             </div>
@@ -348,7 +353,10 @@ export function CreateGuardrailForm({
               />
               {errors.definition?.trigger?.conditions?.[index]?.value && (
                 <p className="mt-1 text-xs text-red-600">
-                  {String(errors.definition.trigger.conditions[index]?.value?.message || '')}
+                  {String(
+                    errors.definition.trigger.conditions[index]?.value
+                      ?.message || ''
+                  )}
                 </p>
               )}
             </div>
@@ -357,7 +365,10 @@ export function CreateGuardrailForm({
 
         {errors.definition?.trigger?.conditions && (
           <p className="text-xs text-red-600">
-            {String(errors.definition.trigger.conditions.message || 'Invalid conditions')}
+            {String(
+              errors.definition.trigger.conditions.message ||
+                'Invalid conditions'
+            )}
           </p>
         )}
       </section>
@@ -428,9 +439,12 @@ export function CreateGuardrailForm({
                   min="1"
                   max="100"
                   className="w-full border rounded px-2 py-1 text-sm"
-                  {...register(`definition.actions.${index}.priority` as const, {
-                    valueAsNumber: true,
-                  })}
+                  {...register(
+                    `definition.actions.${index}.priority` as const,
+                    {
+                      valueAsNumber: true,
+                    }
+                  )}
                 />
               </div>
             </div>
@@ -443,14 +457,14 @@ export function CreateGuardrailForm({
                 </label>
                 <textarea
                   className="w-full border rounded px-2 py-1 text-sm min-h-16"
-                  placeholder="Message to display when blocked"
+                  placeholder="Enter block message"
                   {...register(
                     `definition.actions.${index}.config.message` as const
                   )}
                 />
                 {errors.definition?.actions?.[index]?.config && (
                   <p className="mt-1 text-xs text-red-600">
-                    {String((errors.definition.actions[index]?.config as any)?.message?.message || 'Invalid config')}
+                    Invalid block config
                   </p>
                 )}
               </div>
@@ -465,7 +479,7 @@ export function CreateGuardrailForm({
                   </label>
                   <textarea
                     className="w-full border rounded px-2 py-1 text-sm min-h-16"
-                    placeholder="Warning message to display"
+                    placeholder="Enter warning message"
                     {...register(
                       `definition.actions.${index}.config.message` as const
                     )}
@@ -505,7 +519,7 @@ export function CreateGuardrailForm({
 
                 {errors.definition?.actions?.[index]?.config && (
                   <p className="mt-1 text-xs text-red-600">
-                    {String((errors.definition.actions[index]?.config as any)?.message?.message || 'Invalid config')}
+                    Invalid warn config
                   </p>
                 )}
               </div>
@@ -529,7 +543,8 @@ export function CreateGuardrailForm({
                     <option value="drop_item">Drop Item</option>
                   </select>
                   <p className="mt-1 text-xs text-gray-500">
-                    drop_field: Remove fields from objects | drop_item: Remove items from arrays
+                    drop_field: Remove fields from objects | drop_item: Remove
+                    items from arrays
                   </p>
                 </div>
 
@@ -540,7 +555,7 @@ export function CreateGuardrailForm({
                   <input
                     type="text"
                     className="w-full border rounded px-2 py-1 text-sm"
-                    placeholder="e.g., input.user_data, output.items"
+                    placeholder="Enter target path (e.g., input.user_data, output.items)"
                     {...register(
                       `definition.actions.${index}.config.target` as const
                     )}
@@ -557,12 +572,15 @@ export function CreateGuardrailForm({
                   <input
                     type="text"
                     className="w-full border rounded px-2 py-1 text-sm"
-                    placeholder="field1,field2 or * for all fields"
+                    placeholder="Enter field names (comma-separated) or *"
                     {...register(
                       `definition.actions.${index}.config.condition.fields` as const,
                       {
                         setValueAs: (value: string) =>
-                          value.split(',').map((f: string) => f.trim()).filter(Boolean)
+                          value
+                            .split(',')
+                            .map((f: string) => f.trim())
+                            .filter(Boolean),
                       }
                     )}
                   />
@@ -596,7 +614,7 @@ export function CreateGuardrailForm({
                     <input
                       type="text"
                       className="w-full border rounded px-2 py-1 text-sm"
-                      placeholder="Value to compare"
+                      placeholder="Enter comparison value"
                       {...register(
                         `definition.actions.${index}.config.condition.value` as const
                       )}
@@ -606,7 +624,7 @@ export function CreateGuardrailForm({
 
                 {errors.definition?.actions?.[index]?.config && (
                   <p className="mt-1 text-xs text-red-600">
-                    {String((errors.definition.actions[index]?.config as any)?.message || 'Invalid config')}
+                    Invalid modify config
                   </p>
                 )}
               </div>

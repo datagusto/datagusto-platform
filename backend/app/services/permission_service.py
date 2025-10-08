@@ -5,16 +5,17 @@ This service provides a unified interface for checking permissions
 across the organization hierarchy (owner > admin > member).
 """
 
-from typing import Dict, Any
-from uuid import UUID
 from enum import Enum
+from typing import Any
+from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.organization_owner_repository import OrganizationOwnerRepository
 from app.repositories.organization_admin_repository import OrganizationAdminRepository
 from app.repositories.organization_member_repository import (
     OrganizationMemberRepository,
 )
+from app.repositories.organization_owner_repository import OrganizationOwnerRepository
 
 
 class PermissionLevel(str, Enum):
@@ -143,7 +144,7 @@ class PermissionService:
 
     async def get_user_permissions_summary(
         self, organization_id: UUID, user_id: UUID
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get comprehensive permission summary for a user in an organization.
 

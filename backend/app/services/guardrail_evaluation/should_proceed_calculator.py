@@ -19,9 +19,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-def calculate_should_proceed(
-    triggered_guardrails: list[dict[str, Any]]
-) -> bool:
+def calculate_should_proceed(triggered_guardrails: list[dict[str, Any]]) -> bool:
     """
     Calculate final should_proceed decision from triggered guardrails.
 
@@ -70,10 +68,7 @@ def calculate_should_proceed(
         return True
 
     # Check for block actions (highest priority)
-    has_block = any(
-        action.get("action_type") == "block"
-        for action in all_actions
-    )
+    has_block = any(action.get("action_type") == "block" for action in all_actions)
 
     if has_block:
         logger.info("Block action detected, should_proceed=False")
@@ -81,8 +76,7 @@ def calculate_should_proceed(
 
     # Check warn actions
     warn_actions = [
-        action for action in all_actions
-        if action.get("action_type") == "warn"
+        action for action in all_actions if action.get("action_type") == "warn"
     ]
 
     if warn_actions:
@@ -94,7 +88,9 @@ def calculate_should_proceed(
 
         # If there are warn actions but no block, default to allowing proceed
         # unless explicitly configured otherwise in the action config
-        logger.debug(f"Found {len(warn_actions)} warn action(s), checking allow_proceed")
+        logger.debug(
+            f"Found {len(warn_actions)} warn action(s), checking allow_proceed"
+        )
         # This is a simplified implementation
         # In production, we'd need access to the action's original config
         return True
@@ -123,7 +119,7 @@ def get_action_config_allow_proceed(action_config: dict[str, Any]) -> bool:
 
 def calculate_should_proceed_with_configs(
     triggered_guardrails: list[dict[str, Any]],
-    guardrail_definitions: dict[str, dict[str, Any]]
+    guardrail_definitions: dict[str, dict[str, Any]],
 ) -> bool:
     """
     Calculate should_proceed with access to original action configurations.
@@ -154,10 +150,7 @@ def calculate_should_proceed_with_configs(
         return True
 
     # Check for block actions
-    has_block = any(
-        action.get("type") == "block"
-        for action in all_action_configs
-    )
+    has_block = any(action.get("type") == "block" for action in all_action_configs)
 
     if has_block:
         logger.info("Block action detected, should_proceed=False")
@@ -165,8 +158,7 @@ def calculate_should_proceed_with_configs(
 
     # Check warn actions with allow_proceed
     warn_actions = [
-        action for action in all_action_configs
-        if action.get("type") == "warn"
+        action for action in all_action_configs if action.get("type") == "warn"
     ]
 
     if warn_actions:
@@ -174,7 +166,9 @@ def calculate_should_proceed_with_configs(
         for warn_action in warn_actions:
             allow_proceed = get_action_config_allow_proceed(warn_action)
             if not allow_proceed:
-                logger.info("Warn action with allow_proceed=False detected, should_proceed=False")
+                logger.info(
+                    "Warn action with allow_proceed=False detected, should_proceed=False"
+                )
                 return False
 
         # All warns allow proceed

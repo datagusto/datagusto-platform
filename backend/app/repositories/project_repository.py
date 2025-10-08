@@ -5,12 +5,11 @@ This repository handles operations for the Project model and its related
 tables (owner, members, active status, archive).
 """
 
-from typing import Optional, List
-from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from sqlalchemy.orm import joinedload
 from uuid import UUID
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.models.project import (
     Project,
@@ -32,9 +31,7 @@ class ProjectRepository(BaseRepository[Project]):
         """
         super().__init__(db, Project)
 
-    async def get_by_id_with_relations(
-        self, project_id: UUID
-    ) -> Optional[Project]:
+    async def get_by_id_with_relations(self, project_id: UUID) -> Project | None:
         """
         Get project by ID with all related data.
 
@@ -60,9 +57,9 @@ class ProjectRepository(BaseRepository[Project]):
         organization_id: UUID,
         page: int = 1,
         page_size: int = 20,
-        is_active: Optional[bool] = None,
-        is_archived: Optional[bool] = None,
-    ) -> tuple[List[Project], int]:
+        is_active: bool | None = None,
+        is_archived: bool | None = None,
+    ) -> tuple[list[Project], int]:
         """
         Get projects by organization with pagination and filtering.
 
@@ -82,23 +79,15 @@ class ProjectRepository(BaseRepository[Project]):
         # Apply filters
         if is_active is not None:
             if is_active:
-                stmt = stmt.where(
-                    Project.active_status.has()
-                )
+                stmt = stmt.where(Project.active_status.has())
             else:
-                stmt = stmt.where(
-                    ~Project.active_status.has()
-                )
+                stmt = stmt.where(~Project.active_status.has())
 
         if is_archived is not None:
             if is_archived:
-                stmt = stmt.where(
-                    Project.archive.has()
-                )
+                stmt = stmt.where(Project.archive.has())
             else:
-                stmt = stmt.where(
-                    ~Project.archive.has()
-                )
+                stmt = stmt.where(~Project.archive.has())
 
         # Get total count
         count_stmt = select(func.count()).select_from(stmt.subquery())
@@ -175,7 +164,7 @@ class ProjectRepository(BaseRepository[Project]):
 
     # Archive Methods
     async def archive(
-        self, project_id: UUID, archived_by: UUID, reason: Optional[str] = None
+        self, project_id: UUID, archived_by: UUID, reason: str | None = None
     ) -> ProjectArchive:
         """
         Archive project (create archive record).
@@ -210,9 +199,7 @@ class ProjectRepository(BaseRepository[Project]):
         Returns:
             True if unarchived, False if not found
         """
-        stmt = select(ProjectArchive).where(
-            ProjectArchive.project_id == project_id
-        )
+        stmt = select(ProjectArchive).where(ProjectArchive.project_id == project_id)
         result = await self.db.execute(stmt)
         archive = result.scalar_one_or_none()
 
@@ -233,8 +220,6 @@ class ProjectRepository(BaseRepository[Project]):
         Returns:
             True if project is archived, False otherwise
         """
-        stmt = select(ProjectArchive).where(
-            ProjectArchive.project_id == project_id
-        )
+        stmt = select(ProjectArchive).where(ProjectArchive.project_id == project_id)
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none() is not None

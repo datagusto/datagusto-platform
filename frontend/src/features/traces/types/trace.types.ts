@@ -21,7 +21,7 @@ export interface Trace {
   status: 'pending' | 'running' | 'completed' | 'failed' | 'error';
   started_at: string;
   ended_at: string | null;
-  trace_metadata: Record<string, any>;
+  trace_metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   observation_count: number;
@@ -50,7 +50,7 @@ export interface TraceCreate {
   agent_id: string;
   status?: string;
   started_at?: string;
-  trace_metadata?: Record<string, any>;
+  trace_metadata?: Record<string, unknown>;
 }
 
 /**
@@ -62,5 +62,5 @@ export interface TraceCreate {
 export interface TraceUpdate {
   status?: string;
   ended_at?: string;
-  trace_metadata?: Record<string, any>;
+  trace_metadata?: Record<string, unknown>;
 }

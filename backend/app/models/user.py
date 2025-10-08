@@ -16,16 +16,15 @@ Models:
 """
 
 from sqlalchemy import (
-    Column,
-    Text,
-    ForeignKey,
     BigInteger,
+    Column,
+    ForeignKey,
     Index,
+    Text,
     UniqueConstraint,
-    TIMESTAMP,
 )
-from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel, uuid_column
 
@@ -99,12 +98,6 @@ class User(BaseModel):
         "UserActiveStatus",
         back_populates="user",
         uselist=False,
-        cascade="all, delete-orphan",
-    )
-    suspensions = relationship(
-        "UserSuspension",
-        back_populates="user",
-        foreign_keys="UserSuspension.user_id",
         cascade="all, delete-orphan",
     )
     archive = relationship(
@@ -334,111 +327,6 @@ class UserActiveStatus(BaseModel):
     user = relationship("User", back_populates="active_status")
 
 
-class UserSuspension(BaseModel):
-    """
-    User suspension history with full audit trail.
-
-    This table tracks all suspensions for users, including who suspended them,
-    when, why, and when/if the suspension was lifted. Multiple suspension records
-    per user are allowed, creating a complete audit history.
-
-    Attributes:
-        id: Unique suspension record ID (auto-increment)
-        user_id: FK to users (the suspended user)
-        suspended_until: Optional end date for temporary suspensions
-        reason: Reason for suspension (required for audit)
-        suspended_by: FK to users (who performed the suspension)
-        lifted_at: When suspension was lifted (NULL = still suspended)
-        lifted_by: FK to users (who lifted the suspension)
-        created_at: When suspension was created (inherited, semantically "suspended_at")
-        updated_at: When suspension record was last updated
-
-    Relationships:
-        user: The suspended user
-        suspender: User who performed the suspension
-        lifter: User who lifted the suspension (if lifted)
-
-    Example:
-        >>> # Suspend user
-        >>> suspension = UserSuspension(
-        ...     user_id=user_id,
-        ...     reason="Violated terms of service",
-        ...     suspended_by=admin_user_id,
-        ...     suspended_until=datetime.utcnow() + timedelta(days=7)
-        ... )
-        >>> session.add(suspension)
-        >>> await session.commit()
-        >>>
-        >>> # Get active suspension
-        >>> result = await session.execute(
-        ...     select(UserSuspension)
-        ...     .where(
-        ...         UserSuspension.user_id == user_id,
-        ...         UserSuspension.lifted_at.is_(None)
-        ...     )
-        ...     .order_by(UserSuspension.created_at.desc())
-        ... )
-        >>> active_suspension = result.scalar_one_or_none()
-        >>>
-        >>> # Lift suspension
-        >>> suspension.lifted_at = datetime.utcnow()
-        >>> suspension.lifted_by = admin_user_id
-        >>> await session.commit()
-
-    Note:
-        - Multiple suspensions allowed (history preserved)
-        - suspended_until = NULL means indefinite suspension
-        - lifted_at = NULL means currently suspended
-        - Always include reason for compliance
-        - created_at semantically represents "suspended_at"
-    """
-
-    __tablename__ = "user_suspensions"
-
-    id = Column(
-        BigInteger,
-        primary_key=True,
-        autoincrement=True,
-        comment="Unique suspension record ID",
-    )
-    user_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        comment="Suspended user ID",
-    )
-    suspended_until = Column(
-        TIMESTAMP(timezone=True),
-        nullable=True,
-        comment="End date for temporary suspension (NULL = indefinite)",
-    )
-    reason = Column(Text, nullable=False, comment="Reason for suspension (audit trail)")
-    suspended_by = Column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id"),
-        nullable=False,
-        comment="User who performed the suspension",
-    )
-    lifted_at = Column(
-        TIMESTAMP(timezone=True),
-        nullable=True,
-        comment="When suspension was lifted (NULL = still suspended)",
-    )
-    lifted_by = Column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id"),
-        nullable=True,
-        comment="User who lifted the suspension",
-    )
-
-    # Relationships
-    user = relationship("User", back_populates="suspensions", foreign_keys=[user_id])
-    suspender = relationship("User", foreign_keys=[suspended_by])
-    lifter = relationship("User", foreign_keys=[lifted_by])
-
-    __table_args__ = (Index("user_suspensions_user_id_idx", "user_id"),)
-
-
 class UserArchive(BaseModel):
     """
     User archives (soft delete pattern).
@@ -519,6 +407,5 @@ __all__ = [
     "UserProfile",
     "UserLoginPassword",
     "UserActiveStatus",
-    "UserSuspension",
     "UserArchive",
 ]

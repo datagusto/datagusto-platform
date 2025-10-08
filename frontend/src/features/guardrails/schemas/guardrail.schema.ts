@@ -65,7 +65,8 @@ export const SeverityEnum = z.enum(['low', 'medium', 'high', 'critical']);
  * Field path validation regex
  * Matches patterns like: input.query, data.users[0].email, matrix[1][2]
  */
-const fieldPathRegex = /^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*|\[\d+\])*$/;
+const fieldPathRegex =
+  /^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*|\[\d+\])*$/;
 
 /**
  * Condition schema
@@ -145,7 +146,9 @@ export const actionSchema = z.discriminatedUnion('type', [
 export const triggerSchema = z.object({
   type: TriggerTypeEnum,
   logic: ConditionLogicEnum,
-  conditions: z.array(conditionSchema).min(1, 'At least one condition is required'),
+  conditions: z
+    .array(conditionSchema)
+    .min(1, 'At least one condition is required'),
 });
 
 /**
@@ -176,7 +179,9 @@ export type ConditionLogic = z.infer<typeof ConditionLogicEnum>;
 export type ConditionOperator = z.infer<typeof ConditionOperatorEnum>;
 export type ActionType = z.infer<typeof ActionTypeEnum>;
 export type ModificationType = z.infer<typeof ModificationTypeEnum>;
-export type ModifyConditionOperator = z.infer<typeof ModifyConditionOperatorEnum>;
+export type ModifyConditionOperator = z.infer<
+  typeof ModifyConditionOperatorEnum
+>;
 export type Severity = z.infer<typeof SeverityEnum>;
 
 export type Condition = z.infer<typeof conditionSchema>;

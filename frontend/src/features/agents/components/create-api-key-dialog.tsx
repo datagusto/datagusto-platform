@@ -21,7 +21,9 @@ interface CreateAPIKeyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   agentId: string;
-  onCreateAPIKey: (data: CreateAPIKeyFormData) => Promise<AgentAPIKeyCreateResponse>;
+  onCreateAPIKey: (
+    data: CreateAPIKeyFormData
+  ) => Promise<AgentAPIKeyCreateResponse>;
 }
 
 /**
@@ -34,12 +36,13 @@ interface CreateAPIKeyDialogProps {
 export function CreateAPIKeyDialog({
   open,
   onOpenChange,
-  agentId,
+  agentId: _agentId,
   onCreateAPIKey,
 }: CreateAPIKeyDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [createdKey, setCreatedKey] = useState<AgentAPIKeyCreateResponse | null>(null);
+  const [createdKey, setCreatedKey] =
+    useState<AgentAPIKeyCreateResponse | null>(null);
   const [copied, setCopied] = useState(false);
 
   const handleSubmit = async (data: CreateAPIKeyFormData) => {
@@ -50,7 +53,9 @@ export function CreateAPIKeyDialog({
       const result = await onCreateAPIKey(data);
       setCreatedKey(result);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to create API key'));
+      setError(
+        err instanceof Error ? err : new Error('Failed to create API key')
+      );
     } finally {
       setIsLoading(false);
     }
@@ -159,7 +164,8 @@ export function CreateAPIKeyDialog({
               {/* Key Info */}
               <div className="text-sm text-gray-600">
                 <p>
-                  <span className="font-medium">Prefix:</span> {createdKey.key_prefix}
+                  <span className="font-medium">Prefix:</span>{' '}
+                  {createdKey.key_prefix}
                 </p>
                 {createdKey.name && (
                   <p>

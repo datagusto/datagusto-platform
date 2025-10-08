@@ -5,14 +5,19 @@ Tests user management service methods including profile management,
 password changes, and user retrieval with mocked repositories.
 """
 
-import pytest
 from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
+
+import pytest
 from fastapi import HTTPException
 
 from app.services.user_service import UserService
-from tests.services.utils import UserDataFactory, OrganizationDataFactory, build_mock_user_model, build_mock_organization_model
-
+from tests.services.utils import (
+    OrganizationDataFactory,
+    UserDataFactory,
+    build_mock_organization_model,
+    build_mock_user_model,
+)
 
 # ============================================================================
 # Test: get_user() - Success case
@@ -20,23 +25,24 @@ from tests.services.utils import UserDataFactory, OrganizationDataFactory, build
 
 
 @pytest.mark.asyncio
-async def test_get_user_success(user_service, mock_user_repository, mock_organization_member_repository,
-                                 mock_user_status_repository):
+async def test_get_user_success(
+    user_service,
+    mock_user_repository,
+    mock_organization_member_repository,
+    mock_user_status_repository,
+):
     """
     Test successful user retrieval.
 
     Verifies:
     - User data returned with all relations
-    - Status flags included (active, suspended, archived)
-    - Organization membership included
+    - Status flags included (active, archived)
     """
     # Arrange
     user_id = uuid4()
     org_id = uuid4()
     user_data = UserDataFactory.build(
-        user_id=user_id,
-        email="test@example.com",
-        name="Test User"
+        user_id=user_id, email="test@example.com", name="Test User"
     )
     org_data = OrganizationDataFactory.build(org_id=org_id)
 
@@ -46,11 +52,12 @@ async def test_get_user_success(user_service, mock_user_repository, mock_organiz
 
     # Mock organization membership
     mock_org = build_mock_organization_model(org_data)
-    mock_organization_member_repository.list_organizations_for_user.return_value = [mock_org]
+    mock_organization_member_repository.list_organizations_for_user.return_value = [
+        mock_org
+    ]
 
     # Mock status checks
     mock_user_status_repository.is_active.return_value = True
-    mock_user_status_repository.is_suspended.return_value = False
     mock_user_status_repository.is_archived.return_value = False
 
     # Act
@@ -61,16 +68,12 @@ async def test_get_user_success(user_service, mock_user_repository, mock_organiz
     assert result["id"] == str(user_id)
     assert result["email"] == user_data["email"]
     assert result["name"] == user_data["name"]
-    assert result["organization_id"] == str(org_id)
     assert result["is_active"] is True
-    assert result["is_suspended"] is False
     assert result["is_archived"] is False
 
     # Verify repository calls
     mock_user_repository.get_by_id_with_relations.assert_called_once_with(user_id)
-    mock_organization_member_repository.list_organizations_for_user.assert_called_once()
     mock_user_status_repository.is_active.assert_called_once_with(user_id)
-    mock_user_status_repository.is_suspended.assert_called_once_with(user_id)
     mock_user_status_repository.is_archived.assert_called_once_with(user_id)
 
 
@@ -109,9 +112,14 @@ async def test_get_user_not_found(user_service, mock_user_repository):
 
 
 @pytest.mark.asyncio
-async def test_update_profile_success(user_service, mock_user_repository, mock_user_profile_repository,
-                                       mock_organization_member_repository, mock_user_status_repository,
-                                       mock_db_session):
+async def test_update_profile_success(
+    user_service,
+    mock_user_repository,
+    mock_user_profile_repository,
+    mock_organization_member_repository,
+    mock_user_status_repository,
+    mock_db_session,
+):
     """
     Test successful profile update.
 
@@ -124,15 +132,13 @@ async def test_update_profile_success(user_service, mock_user_repository, mock_u
     user_id = uuid4()
     org_id = uuid4()
     user_data = UserDataFactory.build(
-        user_id=user_id,
-        email="test@example.com",
-        name="Old Name"
+        user_id=user_id, email="test@example.com", name="Old Name"
     )
 
     profile_update = {
         "name": "New Name",
         "bio": "Updated bio",
-        "avatar_url": "https://example.com/new-avatar.png"
+        "avatar_url": "https://example.com/new-avatar.png",
     }
 
     # Mock user existence
@@ -150,10 +156,13 @@ async def test_update_profile_success(user_service, mock_user_repository, mock_u
     mock_updated_user = build_mock_user_model(updated_user_data)
     mock_user_repository.get_by_id_with_relations.return_value = mock_updated_user
 
-    mock_org = build_mock_organization_model(OrganizationDataFactory.build(org_id=org_id))
-    mock_organization_member_repository.list_organizations_for_user.return_value = [mock_org]
+    mock_org = build_mock_organization_model(
+        OrganizationDataFactory.build(org_id=org_id)
+    )
+    mock_organization_member_repository.list_organizations_for_user.return_value = [
+        mock_org
+    ]
     mock_user_status_repository.is_active.return_value = True
-    mock_user_status_repository.is_suspended.return_value = False
     mock_user_status_repository.is_archived.return_value = False
 
     # Act
@@ -166,7 +175,9 @@ async def test_update_profile_success(user_service, mock_user_repository, mock_u
     # Verify repository calls
     mock_user_repository.get_by_id.assert_called_once_with(user_id)
     mock_user_profile_repository.get_by_user_id.assert_called_once_with(user_id)
-    mock_user_profile_repository.update_profile.assert_called_once_with(user_id, profile_update)
+    mock_user_profile_repository.update_profile.assert_called_once_with(
+        user_id, profile_update
+    )
     mock_db_session.commit.assert_called_once()
 
 
@@ -176,7 +187,9 @@ async def test_update_profile_success(user_service, mock_user_repository, mock_u
 
 
 @pytest.mark.asyncio
-async def test_change_password_success(user_service, mock_user_auth_repository, mock_db_session):
+async def test_change_password_success(
+    user_service, mock_user_auth_repository, mock_db_session
+):
     """
     Test successful password change.
 
@@ -196,9 +209,10 @@ async def test_change_password_success(user_service, mock_user_auth_repository, 
     mock_user_auth_repository.get_by_user_id.return_value = mock_auth
 
     # Mock security functions
-    with patch('app.services.user_service.verify_password') as mock_verify, \
-         patch('app.services.user_service.get_password_hash') as mock_hash:
-
+    with (
+        patch("app.services.user_service.verify_password") as mock_verify,
+        patch("app.services.user_service.get_password_hash") as mock_hash,
+    ):
         mock_verify.return_value = True
         mock_hash.return_value = "hashed_NewPassword456"
         mock_user_auth_repository.update_password.return_value = AsyncMock()
@@ -213,7 +227,9 @@ async def test_change_password_success(user_service, mock_user_auth_repository, 
     mock_user_auth_repository.get_by_user_id.assert_called_once_with(user_id)
     mock_verify.assert_called_once_with(old_password, "hashed_OldPassword123")
     mock_hash.assert_called_once_with(new_password)
-    mock_user_auth_repository.update_password.assert_called_once_with(user_id, "hashed_NewPassword456")
+    mock_user_auth_repository.update_password.assert_called_once_with(
+        user_id, "hashed_NewPassword456"
+    )
     mock_db_session.commit.assert_called_once()
 
 
@@ -223,7 +239,9 @@ async def test_change_password_success(user_service, mock_user_auth_repository, 
 
 
 @pytest.mark.asyncio
-async def test_change_password_wrong_old_password(user_service, mock_user_auth_repository):
+async def test_change_password_wrong_old_password(
+    user_service, mock_user_auth_repository
+):
     """
     Test password change with incorrect old password.
 
@@ -243,7 +261,7 @@ async def test_change_password_wrong_old_password(user_service, mock_user_auth_r
     mock_user_auth_repository.get_by_user_id.return_value = mock_auth
 
     # Mock password verification failure
-    with patch('app.services.user_service.verify_password') as mock_verify:
+    with patch("app.services.user_service.verify_password") as mock_verify:
         mock_verify.return_value = False
 
         # Act & Assert

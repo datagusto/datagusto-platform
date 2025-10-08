@@ -4,8 +4,9 @@ Organization management endpoint tests.
 Tests for organization CRUD operations, member management, and permissions.
 """
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from tests.api.base import BaseControllerTest
 
@@ -57,8 +58,6 @@ class TestOrganizationEndpoints(BaseControllerTest):
         # Make request
         payload = {
             "name": test_organization_data["name"],
-            "slug": test_organization_data["slug"],
-            "description": test_organization_data.get("description"),
         }
         response = await authenticated_client.post(
             "/api/v1/organizations/", json=payload
@@ -67,7 +66,6 @@ class TestOrganizationEndpoints(BaseControllerTest):
         # Assertions
         data = self._assert_success(response, expected_status=200)
         assert data["name"] == test_organization_data["name"]
-        assert data["slug"] == test_organization_data["slug"]
         assert mock_service.create_organization.called
 
     @pytest.mark.asyncio

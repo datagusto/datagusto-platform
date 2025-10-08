@@ -1,8 +1,9 @@
-from typing import Dict, Any, Optional, List, TypeVar, Generic, Type
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import DeclarativeBase
+from typing import Any, Generic, TypeVar
 from uuid import UUID
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import DeclarativeBase
 
 T = TypeVar("T", bound=DeclarativeBase)
 
@@ -10,7 +11,7 @@ T = TypeVar("T", bound=DeclarativeBase)
 class BaseRepository(Generic[T]):
     """Base repository with common CRUD operations for all entities."""
 
-    def __init__(self, db: AsyncSession, model: Type[T]):
+    def __init__(self, db: AsyncSession, model: type[T]):
         """
         Initialize the repository with a database session and model.
 
@@ -21,7 +22,7 @@ class BaseRepository(Generic[T]):
         self.db = db
         self.model = model
 
-    async def create(self, data: Dict[str, Any]) -> T:
+    async def create(self, data: dict[str, Any]) -> T:
         """
         Create a new entity in the database.
 
@@ -36,7 +37,7 @@ class BaseRepository(Generic[T]):
         await self.db.flush()
         return entity
 
-    async def get_by_id(self, entity_id: UUID) -> Optional[T]:
+    async def get_by_id(self, entity_id: UUID) -> T | None:
         """
         Get entity by ID.
 
@@ -50,7 +51,7 @@ class BaseRepository(Generic[T]):
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_all(self, limit: int = 100, offset: int = 0) -> List[T]:
+    async def get_all(self, limit: int = 100, offset: int = 0) -> list[T]:
         """
         Get all entities with pagination.
 
@@ -66,8 +67,8 @@ class BaseRepository(Generic[T]):
         return result.scalars().all()
 
     async def update_by_id(
-        self, entity_id: UUID, update_data: Dict[str, Any]
-    ) -> Optional[T]:
+        self, entity_id: UUID, update_data: dict[str, Any]
+    ) -> T | None:
         """
         Update entity by ID.
 
@@ -121,7 +122,7 @@ class BaseRepository(Generic[T]):
 
     async def get_by_id_and_organization(
         self, entity_id: UUID, organization_id: UUID
-    ) -> Optional[T]:
+    ) -> T | None:
         """
         Get entity by ID with organization filtering (multi-tenant support).
 
@@ -143,7 +144,7 @@ class BaseRepository(Generic[T]):
 
     async def get_all_by_organization(
         self, organization_id: UUID, limit: int = 100, offset: int = 0
-    ) -> List[T]:
+    ) -> list[T]:
         """
         Get all entities for a specific organization with pagination.
 

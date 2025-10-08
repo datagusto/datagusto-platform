@@ -6,7 +6,6 @@ following the same ultra-fine-grained separation principles as database models.
 """
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -49,7 +48,7 @@ class ProjectUpdate(BaseModel):
         >>> update_data = ProjectUpdate(name="Updated Project Name")
     """
 
-    name: Optional[str] = Field(
+    name: str | None = Field(
         None, min_length=1, max_length=255, description="Project name"
     )
 
@@ -185,7 +184,7 @@ class ProjectArchiveRequest(BaseModel):
         ... )
     """
 
-    reason: Optional[str] = Field(None, description="Reason for archiving")
+    reason: str | None = Field(None, description="Reason for archiving")
 
 
 class ProjectMemberListResponse(BaseModel):

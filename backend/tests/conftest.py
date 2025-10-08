@@ -5,20 +5,46 @@ This module provides fixtures for mocking services, database sessions,
 authentication, and test data.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock
-from httpx import AsyncClient, ASGITransport
-from uuid import UUID
+import os
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock
+from uuid import UUID
 
-from app.main import app
-from app.core.database import get_async_db
+import pytest
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
+
 from app.core.auth import get_current_user
+
+# Import settings from application
+from app.core.config import settings
+from app.core.database import get_async_db
+from app.main import app
 from app.services.auth_service import AuthService
-from app.services.user_service import UserService
-from app.services.organization_service import OrganizationService
 from app.services.organization_member_service import OrganizationMemberService
+from app.services.organization_service import OrganizationService
 from app.services.permission_service import PermissionService
+from app.services.user_service import UserService
+
+# ============================================================================
+# Test Database Configuration
+# ============================================================================
+
+# Create test engine with NullPool for better test isolation
+# NullPool prevents connection pooling which can interfere with test transactions
+test_engine = create_async_engine(
+    settings.test_async_database_url,
+    echo=False,  # Set to True for SQL query debugging
+    poolclass=NullPool,  # Disable connection pooling for tests
+)
+
+# Create async session factory for tests
+TestAsyncSessionLocal = async_sessionmaker(
+    test_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
 
 
 # ============================================================================
@@ -172,11 +198,12 @@ def auth_headers(mock_jwt_token) -> dict:
 
 
 @pytest.fixture
-def mock_current_user(test_user_id, test_organization_id) -> dict:
+def mock_current_user(test_user_id) -> dict:
     """Mock current user extracted from JWT."""
     return {
-        "sub": str(test_user_id),
-        "org_id": str(test_organization_id),
+        "id": str(test_user_id),
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
     }
 
 
@@ -283,44 +310,53 @@ def test_db_setup():
     Runs alembic migrations on test database before any tests.
     Drops all tables after all tests complete.
     """
-    import os
     from alembic.config import Config
-    from alembic import command
 
-    # Set test database URL for alembic
-    original_db_url = os.environ.get("DATABASE_URL")
-    test_db_url = "postgresql://postgres:postgres@localhost:5432/datagusto_test"
-    os.environ["DATABASE_URL"] = test_db_url
+    from alembic import command
+    from app.core.config import Settings
+
+    # Override POSTGRES_DB environment variable temporarily for test database
+    original_db = os.environ.get("POSTGRES_DB")
+    os.environ["POSTGRES_DB"] = settings.TEST_POSTGRES_DB
+
+    # Create new settings instance with test database
+    test_settings = Settings()
 
     try:
-        # Run migrations
+        # Run migrations using synchronous URL
         alembic_cfg = Config("alembic.ini")
-        alembic_cfg.set_main_option("sqlalchemy.url", test_db_url)
+        alembic_cfg.set_main_option(
+            "sqlalchemy.url", test_settings.test_sync_database_url
+        )
         command.upgrade(alembic_cfg, "head")
         print("\n✅ Test database migrations applied successfully")
     finally:
-        # Restore original DATABASE_URL
-        if original_db_url:
-            os.environ["DATABASE_URL"] = original_db_url
+        # Restore original POSTGRES_DB
+        if original_db:
+            os.environ["POSTGRES_DB"] = original_db
         else:
-            os.environ.pop("DATABASE_URL", None)
+            os.environ.pop("POSTGRES_DB", None)
 
     yield
 
     # Cleanup: Drop all tables after all tests
     print("\n🧹 Cleaning up test database...")
     try:
-        os.environ["DATABASE_URL"] = test_db_url
+        os.environ["POSTGRES_DB"] = settings.TEST_POSTGRES_DB
+        test_settings = Settings()
+
         alembic_cfg = Config("alembic.ini")
-        alembic_cfg.set_main_option("sqlalchemy.url", test_db_url)
+        alembic_cfg.set_main_option(
+            "sqlalchemy.url", test_settings.test_sync_database_url
+        )
         command.downgrade(alembic_cfg, "base")
         print("✅ Test database cleaned successfully")
     finally:
-        # Restore original DATABASE_URL
-        if original_db_url:
-            os.environ["DATABASE_URL"] = original_db_url
+        # Restore original POSTGRES_DB
+        if original_db:
+            os.environ["POSTGRES_DB"] = original_db
         else:
-            os.environ.pop("DATABASE_URL", None)
+            os.environ.pop("POSTGRES_DB", None)
 
 
 @pytest.fixture(scope="function")
@@ -332,9 +368,8 @@ async def test_db_engine(test_db_setup):
     Used by repository and integration tests.
     Depends on test_db_setup to ensure migrations are applied.
     """
-    from app.core.test_database import test_engine
     yield test_engine
-    # Engine disposal handled by test_database module
+    # Engine disposal handled by conftest module
 
 
 @pytest.fixture
@@ -389,9 +424,10 @@ async def _cleanup_test_database(engine):
 
     async with engine.connect() as connection:
         # Truncate all tables in reverse order of dependencies
-        await connection.execute(text("TRUNCATE TABLE user_suspensions CASCADE"))
         await connection.execute(text("TRUNCATE TABLE user_archives CASCADE"))
-        await connection.execute(text("TRUNCATE TABLE organization_suspensions CASCADE"))
+        await connection.execute(
+            text("TRUNCATE TABLE organization_suspensions CASCADE")
+        )
         await connection.execute(text("TRUNCATE TABLE organization_archives CASCADE"))
         await connection.execute(text("TRUNCATE TABLE organization_admins CASCADE"))
         await connection.execute(text("TRUNCATE TABLE organization_owners CASCADE"))
@@ -400,7 +436,9 @@ async def _cleanup_test_database(engine):
         await connection.execute(text("TRUNCATE TABLE user_profile CASCADE"))
         await connection.execute(text("TRUNCATE TABLE user_login_password CASCADE"))
         await connection.execute(text("TRUNCATE TABLE users CASCADE"))
-        await connection.execute(text("TRUNCATE TABLE organization_active_status CASCADE"))
+        await connection.execute(
+            text("TRUNCATE TABLE organization_active_status CASCADE")
+        )
         await connection.execute(text("TRUNCATE TABLE organizations CASCADE"))
         await connection.commit()
 
@@ -428,15 +466,10 @@ async def integration_client(test_db_setup, test_db_engine):
         ...     response = await integration_client.post("/api/v1/auth/register", ...)
         ...     assert response.status_code == 200
     """
-    from httpx import AsyncClient, ASGITransport
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-    from app.main import app
-    from app.core.database import get_async_db
+    from httpx import ASGITransport, AsyncClient
 
-    # Create async session maker from test database engine
-    TestAsyncSessionLocal = async_sessionmaker(
-        test_db_engine, class_=AsyncSession, expire_on_commit=False
-    )
+    from app.core.database import get_async_db
+    from app.main import app
 
     # Override get_async_db to use test database
     async def override_get_async_db():

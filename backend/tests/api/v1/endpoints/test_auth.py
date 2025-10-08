@@ -4,8 +4,9 @@ Authentication endpoint tests.
 Tests for /auth/register, /auth/token, /auth/refresh, and /auth/me endpoints.
 """
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from fastapi import HTTPException
 
 from tests.api.base import BaseControllerTest
@@ -16,23 +17,18 @@ class TestAuthEndpoints(BaseControllerTest):
 
     @pytest.mark.asyncio
     @patch("app.api.v1.endpoints.auth.AuthService")
-    @patch("os.getenv")
+    @patch("app.api.v1.endpoints.auth.settings.ENABLE_REGISTRATION", "true")
     async def test_register_success(
         self,
-        mock_getenv,
         mock_auth_service_class,
         async_client,
         test_user_data,
     ):
         """Test successful user registration."""
-        # Mock environment variable
-        mock_getenv.return_value = "true"
-
         # Mock AuthService
         mock_service = AsyncMock()
         mock_service.register_user.return_value = {
             "user_id": test_user_data["id"],
-            "organization_id": test_user_data["organization_id"],
             "email": test_user_data["email"],
             "name": test_user_data["name"],
             "access_token": "mock_access_token",
@@ -59,12 +55,9 @@ class TestAuthEndpoints(BaseControllerTest):
         assert mock_service.register_user.called
 
     @pytest.mark.asyncio
-    @patch("os.getenv")
-    async def test_register_disabled(self, mock_getenv, async_client):
+    @patch("app.api.v1.endpoints.auth.settings.ENABLE_REGISTRATION", "false")
+    async def test_register_disabled(self, async_client):
         """Test registration when disabled via environment variable."""
-        # Mock environment variable
-        mock_getenv.return_value = "false"
-
         # Make request
         payload = {
             "email": "test@example.com",
@@ -93,7 +86,6 @@ class TestAuthEndpoints(BaseControllerTest):
         mock_service = AsyncMock()
         mock_service.login_user.return_value = {
             "user_id": test_user_data["id"],
-            "organization_id": test_user_data["organization_id"],
             "email": test_user_data["email"],
             "name": test_user_data["name"],
             "access_token": "mock_access_token",

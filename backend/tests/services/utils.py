@@ -5,11 +5,10 @@ This module provides helper functions for setting up services with mocks,
 assertion utilities, and test data generation.
 """
 
-from uuid import UUID, uuid4
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any
 from unittest.mock import AsyncMock
-
+from uuid import UUID, uuid4
 
 # ============================================================================
 # UUID Generation Helpers
@@ -44,6 +43,7 @@ def generate_consistent_uuid(seed: str) -> UUID:
     """
     # Use namespace UUID for consistent generation
     import hashlib
+
     hash_digest = hashlib.md5(seed.encode()).hexdigest()
     return UUID(hash_digest)
 
@@ -66,7 +66,7 @@ class UserDataFactory:
         email: str | None = None,
         name: str | None = None,
         **overrides,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Build test user data dictionary.
 
@@ -120,7 +120,7 @@ class OrganizationDataFactory:
         org_id: UUID | None = None,
         name: str | None = None,
         **overrides,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Build test organization data dictionary.
 
@@ -172,7 +172,7 @@ class MembershipDataFactory:
         is_owner: bool = False,
         is_admin: bool = False,
         **overrides,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Build test membership data dictionary.
 
@@ -232,12 +232,10 @@ def assert_service_called_with(mock_service, method_name: str, **expected_kwargs
         if call_args:
             _, actual_kwargs = call_args
             for key, expected_value in expected_kwargs.items():
-                assert (
-                    key in actual_kwargs
-                ), f"Expected kwarg '{key}' not found in call"
-                assert (
-                    actual_kwargs[key] == expected_value
-                ), f"Expected {key}={expected_value}, got {actual_kwargs[key]}"
+                assert key in actual_kwargs, f"Expected kwarg '{key}' not found in call"
+                assert actual_kwargs[key] == expected_value, (
+                    f"Expected {key}={expected_value}, got {actual_kwargs[key]}"
+                )
 
 
 def assert_not_called(mock_service, method_name: str):
@@ -260,7 +258,7 @@ def assert_not_called(mock_service, method_name: str):
 # ============================================================================
 
 
-def build_mock_user_model(user_data: Dict[str, Any]) -> AsyncMock:
+def build_mock_user_model(user_data: dict[str, Any]) -> AsyncMock:
     """
     Build a mock User model instance from test data.
 
@@ -295,7 +293,7 @@ def build_mock_user_model(user_data: Dict[str, Any]) -> AsyncMock:
     return user
 
 
-def build_mock_organization_model(org_data: Dict[str, Any]) -> AsyncMock:
+def build_mock_organization_model(org_data: dict[str, Any]) -> AsyncMock:
     """
     Build a mock Organization model instance from test data.
 

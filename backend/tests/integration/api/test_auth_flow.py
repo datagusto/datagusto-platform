@@ -5,9 +5,9 @@ Tests complete authentication workflows end-to-end with real database.
 Uses standard FastAPI testing patterns with AsyncClient.
 """
 
-import pytest
 from uuid import UUID
 
+import pytest
 
 # Mark all tests as integration tests
 pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
@@ -45,7 +45,6 @@ async def test_register_user_success(integration_client):
     data = response.json()
 
     assert "user_id" in data
-    assert "organization_id" in data
     assert data["email"] == registration_data["email"]
     assert data["name"] == registration_data["name"]
     assert "access_token" in data
@@ -102,9 +101,8 @@ async def test_register_then_login_success(integration_client):
     assert login_data["access_token"].count(".") == 2
     assert login_data["refresh_token"].count(".") == 2
 
-    # Verify user and org IDs match
+    # Verify user ID matches
     assert login_data["user_id"] == register_data["user_id"]
-    assert login_data["organization_id"] == register_data["organization_id"]
 
 
 # ============================================================================

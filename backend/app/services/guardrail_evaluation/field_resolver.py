@@ -83,7 +83,7 @@ def parse_field_path(path: str) -> list[str | int]:
     path_without_dots = path.replace(".", "")
     if matched_text != path_without_dots:
         raise FieldPathResolutionError(
-            f"Invalid path syntax: unexpected characters in path",
+            "Invalid path syntax: unexpected characters in path",
             path,
         )
 
@@ -121,7 +121,7 @@ def resolve_field_value(data: dict | list, path: str) -> Any:
     segments = parse_field_path(path)
     current_value: Any = data
 
-    for i, segment in enumerate(segments):
+    for _, segment in enumerate(segments):
         try:
             if isinstance(segment, str):
                 # Dictionary key access
@@ -149,7 +149,7 @@ def resolve_field_value(data: dict | list, path: str) -> Any:
                     )
                 if segment < 0:
                     raise FieldPathResolutionError(
-                        f"Negative array indices are not supported",
+                        "Negative array indices are not supported",
                         path,
                         segment,
                     )

@@ -5,15 +5,16 @@ This service handles project-related operations including CRUD operations,
 member management, owner management, and status management.
 """
 
-from typing import Optional, List, Dict, Any
+from typing import Any
 from uuid import UUID
-from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
 
-from app.repositories.project_repository import ProjectRepository
-from app.repositories.project_owner_repository import ProjectOwnerRepository
+from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.repositories.project_member_repository import ProjectMemberRepository
+from app.repositories.project_owner_repository import ProjectOwnerRepository
+from app.repositories.project_repository import ProjectRepository
 from app.services.permission_service import PermissionService
 
 
@@ -33,7 +34,7 @@ class ProjectService:
         self.member_repo = ProjectMemberRepository(db)
         self.permission_service = PermissionService(db)
 
-    async def get_project(self, project_id: UUID) -> Dict[str, Any]:
+    async def get_project(self, project_id: UUID) -> dict[str, Any]:
         """
         Get project by ID with all related data.
 
@@ -58,8 +59,12 @@ class ProjectService:
             "organization_id": str(project.organization_id),
             "name": project.name,
             "created_by": str(project.created_by),
-            "created_at": project.created_at.isoformat() if project.created_at else None,
-            "updated_at": project.updated_at.isoformat() if project.updated_at else None,
+            "created_at": project.created_at.isoformat()
+            if project.created_at
+            else None,
+            "updated_at": project.updated_at.isoformat()
+            if project.updated_at
+            else None,
             "is_active": await self.project_repo.is_active(project.id),
             "is_archived": await self.project_repo.is_archived(project.id),
         }
@@ -69,9 +74,9 @@ class ProjectService:
         organization_id: UUID,
         page: int = 1,
         page_size: int = 20,
-        is_active: Optional[bool] = None,
-        is_archived: Optional[bool] = None,
-    ) -> Dict[str, Any]:
+        is_active: bool | None = None,
+        is_archived: bool | None = None,
+    ) -> dict[str, Any]:
         """
         List projects in an organization with pagination and filtering.
 
@@ -95,16 +100,22 @@ class ProjectService:
 
         items = []
         for project in projects:
-            items.append({
-                "id": str(project.id),
-                "organization_id": str(project.organization_id),
-                "name": project.name,
-                "created_by": str(project.created_by),
-                "created_at": project.created_at.isoformat() if project.created_at else None,
-                "updated_at": project.updated_at.isoformat() if project.updated_at else None,
-                "is_active": await self.project_repo.is_active(project.id),
-                "is_archived": await self.project_repo.is_archived(project.id),
-            })
+            items.append(
+                {
+                    "id": str(project.id),
+                    "organization_id": str(project.organization_id),
+                    "name": project.name,
+                    "created_by": str(project.created_by),
+                    "created_at": project.created_at.isoformat()
+                    if project.created_at
+                    else None,
+                    "updated_at": project.updated_at.isoformat()
+                    if project.updated_at
+                    else None,
+                    "is_active": await self.project_repo.is_active(project.id),
+                    "is_archived": await self.project_repo.is_archived(project.id),
+                }
+            )
 
         return {
             "items": items,
@@ -115,7 +126,7 @@ class ProjectService:
 
     async def create_project(
         self, organization_id: UUID, name: str, created_by: UUID
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create a new project.
 
@@ -178,7 +189,7 @@ class ProjectService:
 
     async def update_project(
         self, project_id: UUID, name: str, user_id: UUID
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Update project information.
 
@@ -235,7 +246,7 @@ class ProjectService:
             )
 
     async def archive_project(
-        self, project_id: UUID, user_id: UUID, reason: Optional[str] = None
+        self, project_id: UUID, user_id: UUID, reason: str | None = None
     ) -> None:
         """
         Archive a project.
@@ -284,7 +295,7 @@ class ProjectService:
 
     # Owner management
 
-    async def get_owner(self, project_id: UUID) -> Dict[str, Any]:
+    async def get_owner(self, project_id: UUID) -> dict[str, Any]:
         """
         Get project owner.
 
@@ -313,7 +324,7 @@ class ProjectService:
 
     async def transfer_ownership(
         self, project_id: UUID, new_owner_id: UUID, current_user_id: UUID
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Transfer project ownership to another user.
 
@@ -373,8 +384,12 @@ class ProjectService:
             return {
                 "project_id": str(owner.project_id),
                 "user_id": str(owner.user_id),
-                "created_at": owner.created_at.isoformat() if owner.created_at else None,
-                "updated_at": owner.updated_at.isoformat() if owner.updated_at else None,
+                "created_at": owner.created_at.isoformat()
+                if owner.created_at
+                else None,
+                "updated_at": owner.updated_at.isoformat()
+                if owner.updated_at
+                else None,
             }
 
         except HTTPException:
@@ -391,7 +406,7 @@ class ProjectService:
 
     async def list_members(
         self, project_id: UUID, page: int = 1, page_size: int = 20
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         List project members with pagination.
 
@@ -409,13 +424,19 @@ class ProjectService:
 
         items = []
         for member in members:
-            items.append({
-                "id": member.id,
-                "project_id": str(member.project_id),
-                "user_id": str(member.user_id),
-                "created_at": member.created_at.isoformat() if member.created_at else None,
-                "updated_at": member.updated_at.isoformat() if member.updated_at else None,
-            })
+            items.append(
+                {
+                    "id": member.id,
+                    "project_id": str(member.project_id),
+                    "user_id": str(member.user_id),
+                    "created_at": member.created_at.isoformat()
+                    if member.created_at
+                    else None,
+                    "updated_at": member.updated_at.isoformat()
+                    if member.updated_at
+                    else None,
+                }
+            )
 
         return {
             "items": items,
@@ -426,7 +447,7 @@ class ProjectService:
 
     async def add_member(
         self, project_id: UUID, user_id: UUID, current_user_id: UUID
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Add a member to the project.
 
@@ -479,8 +500,12 @@ class ProjectService:
                 "id": member.id,
                 "project_id": str(member.project_id),
                 "user_id": str(member.user_id),
-                "created_at": member.created_at.isoformat() if member.created_at else None,
-                "updated_at": member.updated_at.isoformat() if member.updated_at else None,
+                "created_at": member.created_at.isoformat()
+                if member.created_at
+                else None,
+                "updated_at": member.updated_at.isoformat()
+                if member.updated_at
+                else None,
             }
 
         except IntegrityError:

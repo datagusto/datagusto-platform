@@ -4,10 +4,11 @@ User profile repository for database operations.
 This repository handles user profile data (name, bio, avatar, etc.).
 """
 
-from typing import Optional, Dict, Any
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from typing import Any
 from uuid import UUID
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import UserProfile
 from app.repositories.base_repository import BaseRepository
@@ -25,7 +26,7 @@ class UserProfileRepository(BaseRepository[UserProfile]):
         """
         super().__init__(db, UserProfile)
 
-    async def get_by_user_id(self, user_id: UUID) -> Optional[UserProfile]:
+    async def get_by_user_id(self, user_id: UUID) -> UserProfile | None:
         """
         Get profile by user ID.
 
@@ -40,7 +41,7 @@ class UserProfileRepository(BaseRepository[UserProfile]):
         return result.scalar_one_or_none()
 
     async def create_profile(
-        self, user_id: UUID, profile_data: Dict[str, Any]
+        self, user_id: UUID, profile_data: dict[str, Any]
     ) -> UserProfile:
         """
         Create a new user profile.
@@ -61,8 +62,8 @@ class UserProfileRepository(BaseRepository[UserProfile]):
         return profile
 
     async def update_profile(
-        self, user_id: UUID, update_data: Dict[str, Any]
-    ) -> Optional[UserProfile]:
+        self, user_id: UUID, update_data: dict[str, Any]
+    ) -> UserProfile | None:
         """
         Update user profile.
 

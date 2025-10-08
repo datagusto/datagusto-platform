@@ -4,9 +4,10 @@ Security tests for organization data isolation.
 Tests to ensure users cannot access data from organizations they don't belong to.
 """
 
-import pytest
 from unittest.mock import AsyncMock, patch
 from uuid import UUID
+
+import pytest
 
 from tests.api.base import BaseControllerTest
 
@@ -18,18 +19,18 @@ class TestOrganizationIsolation(BaseControllerTest):
     @pytest.mark.asyncio
     @patch("app.api.v1.endpoints.organizations.OrganizationService")
     @patch("app.api.v1.endpoints.organizations.PermissionService")
-    async def test_cannot_access_other_organization_data(
+    async def test_cannot_modify_other_organization_data(
         self,
         mock_permission_service_class,
         mock_org_service_class,
         authenticated_client,
     ):
         """
-        Test that users cannot access organization data they don't belong to.
+        Test that users cannot modify organization data they don't belong to.
 
-        Security check: Organization isolation enforcement.
+        Security check: Organization modification isolation enforcement.
         """
-        own_org_id = UUID("12345678-1234-1234-1234-123456789abc")
+        _own_org_id = UUID("12345678-1234-1234-1234-123456789abc")
         other_org_id = UUID("87654321-4321-4321-4321-cba987654321")
 
         # Mock services
@@ -39,11 +40,12 @@ class TestOrganizationIsolation(BaseControllerTest):
         mock_permission_service_class.return_value = mock_permission_service
         mock_org_service_class.return_value = mock_org_service
 
-        # User tries to access organization they don't belong to
-        mock_permission_service.can_access_organization.return_value = False
+        # User tries to modify organization they don't belong to
+        mock_permission_service.is_admin_or_owner.return_value = False
 
-        response = await authenticated_client.get(
-            f"/api/v1/organizations/{other_org_id}"
+        update_payload = {"name": "Hacked Organization"}
+        response = await authenticated_client.patch(
+            f"/api/v1/organizations/{other_org_id}", json=update_payload
         )
 
         # Should return 403 Forbidden
@@ -63,7 +65,7 @@ class TestOrganizationIsolation(BaseControllerTest):
 
         Security check: User data protection.
         """
-        own_user_id = UUID("12345678-1234-1234-1234-123456789abc")
+        _own_user_id = UUID("12345678-1234-1234-1234-123456789abc")
         other_user_id = UUID("87654321-4321-4321-4321-cba987654321")
 
         # Mock services

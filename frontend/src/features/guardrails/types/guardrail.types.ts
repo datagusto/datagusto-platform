@@ -18,7 +18,7 @@ export interface Guardrail {
   project_id: string;
   organization_id: string;
   name: string;
-  definition: Record<string, any>;
+  definition: Record<string, unknown>;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -48,7 +48,7 @@ export interface GuardrailListResponse {
  */
 export interface GuardrailCreate {
   name: string;
-  definition: Record<string, any>;
+  definition: Record<string, unknown>;
   project_id: string;
 }
 
@@ -60,5 +60,5 @@ export interface GuardrailCreate {
  */
 export interface GuardrailUpdate {
   name?: string;
-  definition?: Record<string, any>;
+  definition?: Record<string, unknown>;
 }

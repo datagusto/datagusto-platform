@@ -5,11 +5,11 @@ This repository handles operations for the Agent model and its related
 tables (API keys, active status, archive).
 """
 
-from typing import Optional, List
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from sqlalchemy.orm import joinedload
 from uuid import UUID
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.models.agent import (
     Agent,
@@ -31,9 +31,7 @@ class AgentRepository(BaseRepository[Agent]):
         """
         super().__init__(db, Agent)
 
-    async def get_by_id_with_relations(
-        self, agent_id: UUID
-    ) -> Optional[Agent]:
+    async def get_by_id_with_relations(self, agent_id: UUID) -> Agent | None:
         """
         Get agent by ID with all related data.
 
@@ -58,9 +56,9 @@ class AgentRepository(BaseRepository[Agent]):
         project_id: UUID,
         page: int = 1,
         page_size: int = 20,
-        is_active: Optional[bool] = None,
-        is_archived: Optional[bool] = None,
-    ) -> tuple[List[Agent], int]:
+        is_active: bool | None = None,
+        is_archived: bool | None = None,
+    ) -> tuple[list[Agent], int]:
         """
         Get agents by project with pagination and filtering.
 
@@ -134,9 +132,7 @@ class AgentRepository(BaseRepository[Agent]):
         Returns:
             True if deactivated, False if not found
         """
-        stmt = select(AgentActiveStatus).where(
-            AgentActiveStatus.agent_id == agent_id
-        )
+        stmt = select(AgentActiveStatus).where(AgentActiveStatus.agent_id == agent_id)
         result = await self.db.execute(stmt)
         status = result.scalar_one_or_none()
 
@@ -157,15 +153,13 @@ class AgentRepository(BaseRepository[Agent]):
         Returns:
             True if agent is active, False otherwise
         """
-        stmt = select(AgentActiveStatus).where(
-            AgentActiveStatus.agent_id == agent_id
-        )
+        stmt = select(AgentActiveStatus).where(AgentActiveStatus.agent_id == agent_id)
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none() is not None
 
     # Archive Methods
     async def archive(
-        self, agent_id: UUID, archived_by: UUID, reason: Optional[str] = None
+        self, agent_id: UUID, archived_by: UUID, reason: str | None = None
     ) -> AgentArchive:
         """
         Archive agent (create archive record).
@@ -200,9 +194,7 @@ class AgentRepository(BaseRepository[Agent]):
         Returns:
             True if unarchived, False if not found
         """
-        stmt = select(AgentArchive).where(
-            AgentArchive.agent_id == agent_id
-        )
+        stmt = select(AgentArchive).where(AgentArchive.agent_id == agent_id)
         result = await self.db.execute(stmt)
         archive = result.scalar_one_or_none()
 
@@ -223,8 +215,6 @@ class AgentRepository(BaseRepository[Agent]):
         Returns:
             True if agent is archived, False otherwise
         """
-        stmt = select(AgentArchive).where(
-            AgentArchive.agent_id == agent_id
-        )
+        stmt = select(AgentArchive).where(AgentArchive.agent_id == agent_id)
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none() is not None

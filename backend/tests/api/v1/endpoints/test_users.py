@@ -4,8 +4,9 @@ User management endpoint tests.
 Tests for user CRUD operations and profile management.
 """
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from fastapi import HTTPException
 
 from tests.api.base import BaseControllerTest
@@ -37,7 +38,6 @@ class TestUserEndpoints(BaseControllerTest):
         assert data["id"] == test_user_data["id"]
         assert data["email"] == test_user_data["email"]
         assert data["name"] == test_user_data["name"]
-        assert data["organization_id"] == test_user_data["organization_id"]
         assert mock_service.get_user.called
 
     @pytest.mark.asyncio
@@ -79,7 +79,7 @@ class TestUserEndpoints(BaseControllerTest):
     ):
         """Test successful profile update."""
         # Ensure current user matches the user being updated
-        assert mock_current_user["sub"] == str(test_user_id)
+        assert mock_current_user["id"] == str(test_user_id)
 
         # Mock UserService
         updated_data = test_user_data.copy()

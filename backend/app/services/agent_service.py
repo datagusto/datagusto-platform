@@ -5,17 +5,18 @@ This service handles agent-related operations including CRUD operations,
 API key management, and status management.
 """
 
-from typing import Optional, Dict, Any
-from uuid import UUID
 from datetime import datetime, timedelta
+from typing import Any
+from uuid import UUID
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.agent_repository import AgentRepository
+from app.core.security import extract_key_prefix, generate_api_key, hash_api_key
 from app.repositories.agent_api_key_repository import AgentAPIKeyRepository
-from app.repositories.project_repository import ProjectRepository
+from app.repositories.agent_repository import AgentRepository
 from app.repositories.project_member_repository import ProjectMemberRepository
-from app.core.security import generate_api_key, hash_api_key, extract_key_prefix
+from app.repositories.project_repository import ProjectRepository
 
 
 class AgentService:
@@ -34,7 +35,7 @@ class AgentService:
         self.project_repo = ProjectRepository(db)
         self.member_repo = ProjectMemberRepository(db)
 
-    async def get_agent(self, agent_id: UUID) -> Dict[str, Any]:
+    async def get_agent(self, agent_id: UUID) -> dict[str, Any]:
         """
         Get agent by ID.
 
@@ -75,9 +76,9 @@ class AgentService:
         project_id: UUID,
         page: int = 1,
         page_size: int = 20,
-        is_active: Optional[bool] = None,
-        is_archived: Optional[bool] = None,
-    ) -> Dict[str, Any]:
+        is_active: bool | None = None,
+        is_archived: bool | None = None,
+    ) -> dict[str, Any]:
         """
         List agents in a project with pagination and filtering.
 
@@ -102,18 +103,24 @@ class AgentService:
         items = []
         for agent in agents:
             api_key_count = await self.api_key_repo.count_keys(agent.id)
-            items.append({
-                "id": str(agent.id),
-                "project_id": str(agent.project_id),
-                "organization_id": str(agent.organization_id),
-                "name": agent.name,
-                "created_by": str(agent.created_by),
-                "created_at": agent.created_at.isoformat() if agent.created_at else None,
-                "updated_at": agent.updated_at.isoformat() if agent.updated_at else None,
-                "is_active": await self.agent_repo.is_active(agent.id),
-                "is_archived": await self.agent_repo.is_archived(agent.id),
-                "api_key_count": api_key_count,
-            })
+            items.append(
+                {
+                    "id": str(agent.id),
+                    "project_id": str(agent.project_id),
+                    "organization_id": str(agent.organization_id),
+                    "name": agent.name,
+                    "created_by": str(agent.created_by),
+                    "created_at": agent.created_at.isoformat()
+                    if agent.created_at
+                    else None,
+                    "updated_at": agent.updated_at.isoformat()
+                    if agent.updated_at
+                    else None,
+                    "is_active": await self.agent_repo.is_active(agent.id),
+                    "is_archived": await self.agent_repo.is_archived(agent.id),
+                    "api_key_count": api_key_count,
+                }
+            )
 
         return {
             "items": items,
@@ -124,7 +131,7 @@ class AgentService:
 
     async def create_agent(
         self, project_id: UUID, name: str, created_by: UUID
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create a new agent.
 
@@ -185,7 +192,7 @@ class AgentService:
 
     async def update_agent(
         self, agent_id: UUID, name: str, user_id: UUID
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Update agent information.
 
@@ -238,7 +245,7 @@ class AgentService:
             )
 
     async def archive_agent(
-        self, agent_id: UUID, user_id: UUID, reason: Optional[str] = None
+        self, agent_id: UUID, user_id: UUID, reason: str | None = None
     ) -> None:
         """
         Archive an agent.
@@ -285,7 +292,7 @@ class AgentService:
 
     async def list_api_keys(
         self, agent_id: UUID, page: int = 1, page_size: int = 20
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         List API keys for an agent with pagination.
 
@@ -301,25 +308,33 @@ class AgentService:
             - Does not return key_hash (security)
             - Only returns key_prefix for identification
         """
-        keys, total = await self.api_key_repo.get_by_agent_id(
-            agent_id, page, page_size
-        )
+        keys, total = await self.api_key_repo.get_by_agent_id(agent_id, page, page_size)
 
         items = []
         for key in keys:
             is_expired = await self.api_key_repo.is_expired(key.id)
-            items.append({
-                "id": str(key.id),
-                "agent_id": str(key.agent_id),
-                "key_prefix": key.key_prefix,
-                "name": key.name,
-                "last_used_at": key.last_used_at.isoformat() if key.last_used_at else None,
-                "expires_at": key.expires_at.isoformat() if key.expires_at else None,
-                "created_by": str(key.created_by),
-                "created_at": key.created_at.isoformat() if key.created_at else None,
-                "updated_at": key.updated_at.isoformat() if key.updated_at else None,
-                "is_expired": is_expired,
-            })
+            items.append(
+                {
+                    "id": str(key.id),
+                    "agent_id": str(key.agent_id),
+                    "key_prefix": key.key_prefix,
+                    "name": key.name,
+                    "last_used_at": key.last_used_at.isoformat()
+                    if key.last_used_at
+                    else None,
+                    "expires_at": key.expires_at.isoformat()
+                    if key.expires_at
+                    else None,
+                    "created_by": str(key.created_by),
+                    "created_at": key.created_at.isoformat()
+                    if key.created_at
+                    else None,
+                    "updated_at": key.updated_at.isoformat()
+                    if key.updated_at
+                    else None,
+                    "is_expired": is_expired,
+                }
+            )
 
         return {
             "items": items,
@@ -332,9 +347,9 @@ class AgentService:
         self,
         agent_id: UUID,
         created_by: UUID,
-        name: Optional[str] = None,
-        expires_in_days: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        name: str | None = None,
+        expires_in_days: int | None = None,
+    ) -> dict[str, Any]:
         """
         Create a new API key for an agent.
 
@@ -396,10 +411,16 @@ class AgentService:
                 "key_prefix": key_record.key_prefix,
                 "name": key_record.name,
                 "last_used_at": None,
-                "expires_at": key_record.expires_at.isoformat() if key_record.expires_at else None,
+                "expires_at": key_record.expires_at.isoformat()
+                if key_record.expires_at
+                else None,
                 "created_by": str(key_record.created_by),
-                "created_at": key_record.created_at.isoformat() if key_record.created_at else None,
-                "updated_at": key_record.updated_at.isoformat() if key_record.updated_at else None,
+                "created_at": key_record.created_at.isoformat()
+                if key_record.created_at
+                else None,
+                "updated_at": key_record.updated_at.isoformat()
+                if key_record.updated_at
+                else None,
                 "is_expired": False,
             }
 

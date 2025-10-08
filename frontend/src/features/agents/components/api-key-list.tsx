@@ -84,7 +84,11 @@ export function APIKeyList({ agentId }: APIKeyListProps) {
 
   // Handle delete API key
   const handleDeleteAPIKey = async (keyId: string) => {
-    if (!confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
+    if (
+      !confirm(
+        'Are you sure you want to delete this API key? This action cannot be undone.'
+      )
+    ) {
       return;
     }
 

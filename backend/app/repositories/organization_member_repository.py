@@ -4,10 +4,10 @@ Organization member repository for database operations.
 This repository handles membership relationships between users and organizations.
 """
 
-from typing import List
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 from uuid import UUID
+
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.organization import OrganizationMember
 from app.models.user import User
@@ -97,7 +97,7 @@ class OrganizationMemberRepository(BaseRepository[OrganizationMember]):
 
     async def list_members(
         self, organization_id: UUID, limit: int = 100, offset: int = 0
-    ) -> List[User]:
+    ) -> list[User]:
         """
         List all members of an organization.
 
@@ -137,7 +137,7 @@ class OrganizationMemberRepository(BaseRepository[OrganizationMember]):
 
     async def list_organizations_for_user(
         self, user_id: UUID, limit: int = 100, offset: int = 0
-    ) -> List:
+    ) -> list:
         """
         List all organizations a user belongs to.
 

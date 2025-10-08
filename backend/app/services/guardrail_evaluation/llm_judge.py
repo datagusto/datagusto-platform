@@ -16,7 +16,6 @@ Environment variables required:
     LLM_ENDPOINT: Endpoint URL (required for ollama only)
 """
 
-import os
 import logging
 from functools import lru_cache
 from typing import Any
@@ -24,6 +23,7 @@ from typing import Any
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from app.core.config import settings
 from app.services.guardrail_evaluation.exceptions import LLMJudgeError
 
 logger = logging.getLogger(__name__)
@@ -44,10 +44,10 @@ def get_llm_config() -> dict[str, str]:
         >>> config['provider']
         'openai'
     """
-    provider = os.getenv("LLM_PROVIDER", "").lower()
-    model = os.getenv("LLM_MODEL", "")
-    api_key = os.getenv("LLM_API_KEY", "")
-    endpoint = os.getenv("LLM_ENDPOINT", "")
+    provider = settings.LLM_PROVIDER.lower()
+    model = settings.LLM_MODEL
+    api_key = settings.LLM_API_KEY
+    endpoint = settings.LLM_ENDPOINT
 
     if not provider:
         raise LLMJudgeError(
@@ -66,9 +66,7 @@ def get_llm_config() -> dict[str, str]:
 
     # Check provider-specific requirements
     if provider in ["openai", "anthropic"] and not api_key:
-        raise LLMJudgeError(
-            f"LLM_API_KEY is required for provider: {provider}"
-        )
+        raise LLMJudgeError(f"LLM_API_KEY is required for provider: {provider}")
 
     if provider == "ollama" and not endpoint:
         raise LLMJudgeError(
@@ -116,6 +114,7 @@ def create_llm_client(config_key: str | None = None) -> BaseChatModel:
 
         if provider == "openai":
             from langchain_openai import ChatOpenAI
+
             return ChatOpenAI(
                 model=model,
                 api_key=api_key,
@@ -124,6 +123,7 @@ def create_llm_client(config_key: str | None = None) -> BaseChatModel:
 
         elif provider == "anthropic":
             from langchain_anthropic import ChatAnthropic
+
             return ChatAnthropic(
                 model=model,
                 api_key=api_key,
@@ -132,6 +132,7 @@ def create_llm_client(config_key: str | None = None) -> BaseChatModel:
 
         elif provider == "ollama":
             from langchain_community.chat_models import ChatOllama
+
             return ChatOllama(
                 model=model,
                 base_url=endpoint,
@@ -147,9 +148,7 @@ def create_llm_client(config_key: str | None = None) -> BaseChatModel:
             "Make sure required packages are installed."
         )
     except Exception as e:
-        raise LLMJudgeError(
-            f"Failed to create LLM client: {str(e)}"
-        )
+        raise LLMJudgeError(f"Failed to create LLM client: {str(e)}")
 
 
 def evaluate_with_llm(field_value: Any, criteria: str, timeout: int = 30) -> bool:
@@ -236,14 +235,10 @@ Answer (true/false):"""
     except LLMJudgeError:
         raise
     except TimeoutError:
-        raise LLMJudgeError(
-            f"LLM judge request timed out after {timeout} seconds"
-        )
+        raise LLMJudgeError(f"LLM judge request timed out after {timeout} seconds")
     except Exception as e:
         logger.error(f"LLM judge error: {str(e)}")
-        raise LLMJudgeError(
-            f"LLM judge failed: {str(e)}"
-        )
+        raise LLMJudgeError(f"LLM judge failed: {str(e)}")
 
 
 __all__ = [

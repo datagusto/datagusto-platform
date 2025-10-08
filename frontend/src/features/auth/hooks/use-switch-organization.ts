@@ -130,7 +130,7 @@ interface UseSwitchOrganizationReturn {
  * ```
  */
 export function useSwitchOrganization(): UseSwitchOrganizationReturn {
-  const router = useRouter();
+  const _router = useRouter();
   const currentOrganizationId = useAuthStore(
     (state) => state.currentOrganizationId
   );

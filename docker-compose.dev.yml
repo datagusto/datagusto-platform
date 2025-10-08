@@ -1,20 +1,18 @@
-version: '3.8'
-
 services:
   # PostgreSQL database
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: datagusto
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-datagusto}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/docker:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -32,7 +30,12 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/datagusto
+      # Database configuration (required by config.py)
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-datagusto}
 
   # Main backend service
   backend:
@@ -40,19 +43,42 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./backend:/app
     depends_on:
       backend-migrations:
         condition: service_completed_successfully
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/datagusto
-      JWT_SECRET_KEY: your-secret-key-here-change-in-production
-      JWT_REFRESH_SECRET_KEY: your-refresh-secret-key-here-change-in-production
-      ENABLE_REGISTRATION: "true"
+      # Database configuration (required by config.py)
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-datagusto}
+
+      # JWT configuration (required by config.py)
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-your-secret-key-here-change-in-production}
+      JWT_REFRESH_SECRET_KEY: ${JWT_REFRESH_SECRET_KEY:-your-refresh-secret-key-here-change-in-production}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: ${JWT_REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      ALGORITHM: ${ALGORITHM:-HS256}
+
+      # LLM configuration (optional)
+      LLM_PROVIDER: ${LLM_PROVIDER:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_ENDPOINT: ${LLM_ENDPOINT:-}
+
+      # Application configuration
+      PROJECT_NAME: ${PROJECT_NAME:-DataGusto Platform API}
+      API_V1_STR: ${API_V1_STR:-/api}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      ENABLE_REGISTRATION: ${ENABLE_REGISTRATION:-true}
+      DEBUG: ${DEBUG:-true}
+
+      # Python configuration
       PYTHONUNBUFFERED: 1
-      DEBUG: "true"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   # Frontend service
@@ -61,14 +87,14 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
-      NEXT_PUBLIC_API_VERSION: v1
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_API_VERSION: ${NEXT_PUBLIC_API_VERSION:-v1}
 
 volumes:
   postgres_data:

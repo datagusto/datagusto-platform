@@ -5,13 +5,13 @@ Tests verify authentication database operations using PostgreSQL test database
 with transaction rollback for isolation.
 """
 
-import pytest
 from uuid import UUID, uuid4
+
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.user_auth_repository import UserAuthRepository
 from tests.repositories.conftest import seed_test_user
-
 
 # ============================================================================
 # Test: create_password_auth() - Create password authentication
@@ -68,7 +68,7 @@ async def test_email_exists(
     - Returns False for non-existent email
     """
     # Arrange
-    user = await seed_test_user(
+    _user = await seed_test_user(
         test_db_session,
         email="exists@example.com",
         with_auth=True,

@@ -5,25 +5,23 @@ This module provides endpoints for agent management including CRUD operations
 and API key management.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any
 from uuid import UUID
 
-from app.core.database import get_async_db
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.auth import require_organization_member
+from app.core.database import get_async_db
+from app.repositories.project_member_repository import ProjectMemberRepository
 from app.schemas.agent import (
-    AgentCreate,
-    AgentUpdate,
-    AgentResponse,
-    AgentListResponse,
     AgentAPIKeyCreate,
-    AgentAPIKeyResponse,
     AgentAPIKeyCreateResponse,
     AgentArchiveRequest,
+    AgentResponse,
+    AgentUpdate,
 )
 from app.services.agent_service import AgentService
-from app.repositories.project_member_repository import ProjectMemberRepository
 
 router = APIRouter()
 
@@ -131,6 +129,7 @@ async def archive_agent(
 
 
 # API Key management endpoints
+
 
 @router.get("/{agent_id}/api-keys", response_model=dict)
 async def list_api_keys(

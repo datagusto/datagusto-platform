@@ -4,10 +4,10 @@ Organization owner repository for database operations.
 This repository handles organization ownership (one owner per organization).
 """
 
-from typing import Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from uuid import UUID
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.organization import OrganizationOwner
 from app.models.user import User
@@ -44,7 +44,7 @@ class OrganizationOwnerRepository(BaseRepository[OrganizationOwner]):
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none() is not None
 
-    async def get_owner(self, organization_id: UUID) -> Optional[User]:
+    async def get_owner(self, organization_id: UUID) -> User | None:
         """
         Get the owner of an organization.
 

@@ -1,18 +1,12 @@
-import os
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from collections.abc import AsyncGenerator
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
-from typing import AsyncGenerator
-from dotenv import load_dotenv
 
-load_dotenv()
+from app.core.config import settings
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-# Convert PostgreSQL URL to async version if needed
-if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
-
-engine = create_async_engine(DATABASE_URL, echo=False)
+# Create async engine for application
+engine = create_async_engine(settings.async_database_url, echo=False)
 AsyncSessionLocal = async_sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
 )
@@ -29,12 +23,10 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 # Keep sync version for backward compatibility during migration
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
 
-sync_engine = create_engine(
-    DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
-)
+sync_engine = create_engine(settings.sync_database_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
 
 

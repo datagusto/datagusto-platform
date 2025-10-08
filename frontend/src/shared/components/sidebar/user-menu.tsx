@@ -17,7 +17,7 @@ export function UserMenu() {
     organizations,
     currentOrganization,
     isLoading: isLoadingOrganizations,
-    switchOrganization,
+    switchOrganization: _switchOrganization,
   } = useSwitchOrganization();
 
   useEffect(() => {
@@ -62,9 +62,13 @@ export function UserMenu() {
           {initials}
         </div>
         <div className="flex-1 text-left">
-          <div className="text-sm font-medium text-gray-900">{user.name || 'User'}</div>
+          <div className="text-sm font-medium text-gray-900">
+            {user.name || 'User'}
+          </div>
           {currentOrganization && (
-            <div className="text-xs text-gray-500">{currentOrganization.name}</div>
+            <div className="text-xs text-gray-500">
+              {currentOrganization.name}
+            </div>
           )}
         </div>
         <svg
@@ -73,7 +77,12 @@ export function UserMenu() {
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
 
@@ -161,7 +170,12 @@ export function UserMenu() {
                 setIsOpen(false);
               }}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -184,7 +198,12 @@ export function UserMenu() {
                 setIsOpen(false);
               }}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -199,7 +218,12 @@ export function UserMenu() {
               className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors rounded"
               onClick={handleLogout}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

@@ -16,4 +16,5 @@ export type {
   RegisterData,
   TokenResponse,
   ApiError,
+  UserOrganization,
 } from './auth.types';

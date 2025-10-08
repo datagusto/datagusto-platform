@@ -5,11 +5,10 @@ This repository handles operations for the ProjectMember model,
 managing the N:M relationship between projects and users.
 """
 
-from typing import List
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func
-from sqlalchemy.exc import IntegrityError
 from uuid import UUID
+
+from sqlalchemy import delete, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.project import ProjectMember
 
@@ -28,7 +27,7 @@ class ProjectMemberRepository:
 
     async def get_by_project_id(
         self, project_id: UUID, page: int = 1, page_size: int = 20
-    ) -> tuple[List[ProjectMember], int]:
+    ) -> tuple[list[ProjectMember], int]:
         """
         Get project members by project ID with pagination.
 
@@ -41,8 +40,10 @@ class ProjectMemberRepository:
             Tuple of (members list, total count)
         """
         # Get total count
-        count_stmt = select(func.count()).select_from(ProjectMember).where(
-            ProjectMember.project_id == project_id
+        count_stmt = (
+            select(func.count())
+            .select_from(ProjectMember)
+            .where(ProjectMember.project_id == project_id)
         )
         total_result = await self.db.execute(count_stmt)
         total = total_result.scalar_one()
@@ -60,7 +61,7 @@ class ProjectMemberRepository:
 
         return list(members), total
 
-    async def get_by_user_id(self, user_id: UUID) -> List[ProjectMember]:
+    async def get_by_user_id(self, user_id: UUID) -> list[ProjectMember]:
         """
         Get all project memberships for a user.
 
@@ -140,8 +141,10 @@ class ProjectMemberRepository:
         Returns:
             Number of members
         """
-        stmt = select(func.count()).select_from(ProjectMember).where(
-            ProjectMember.project_id == project_id
+        stmt = (
+            select(func.count())
+            .select_from(ProjectMember)
+            .where(ProjectMember.project_id == project_id)
         )
         result = await self.db.execute(stmt)
         return result.scalar_one()

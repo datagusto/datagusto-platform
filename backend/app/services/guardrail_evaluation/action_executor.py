@@ -13,15 +13,18 @@ Action types:
 import copy
 from typing import Any
 
-from app.services.guardrail_evaluation.field_resolver import resolve_field_value, parse_field_path
 from app.services.guardrail_evaluation.exceptions import ActionExecutionError
+from app.services.guardrail_evaluation.field_resolver import (
+    parse_field_path,
+    resolve_field_value,
+)
 
 
 def execute_block_action(
     action_config: dict[str, Any],
     context: dict[str, Any],
     matched_conditions: list[int],
-    conditions: list[dict[str, Any]]
+    conditions: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """
     Execute block action.
@@ -138,8 +141,7 @@ def evaluate_modify_condition(value: Any, operator: str, target: Any) -> bool:
 
 
 def execute_modify_drop_field(
-    config: dict[str, Any],
-    context: dict[str, Any]
+    config: dict[str, Any], context: dict[str, Any]
 ) -> dict[str, Any]:
     """
     Execute modify action with drop_field modification type.
@@ -175,11 +177,13 @@ def execute_modify_drop_field(
     if not target_path:
         raise ActionExecutionError("Modify action missing 'target' path")
 
-    # Resolve target object
+    # Resolve target object (validation only)
     try:
-        target_obj = resolve_field_value(context, target_path)
+        _ = resolve_field_value(context, target_path)
     except Exception as e:
-        raise ActionExecutionError(f"Failed to resolve target path '{target_path}': {str(e)}")
+        raise ActionExecutionError(
+            f"Failed to resolve target path '{target_path}': {str(e)}"
+        )
 
     # Create deep copy for modification
     modified_context = copy.deepcopy(context)
@@ -237,14 +241,18 @@ def execute_modify_drop_field(
                 for field in check_fields:
                     if field in item:
                         field_value = item[field]
-                        if evaluate_modify_condition(field_value, operator, target_value):
+                        if evaluate_modify_condition(
+                            field_value, operator, target_value
+                        ):
                             fields_to_drop.append(field)
 
                 for field in fields_to_drop:
                     del item[field]
                     total_dropped += 1
 
-        applied_pattern = f"{total_dropped} field(s) dropped from array items ({operator})"
+        applied_pattern = (
+            f"{total_dropped} field(s) dropped from array items ({operator})"
+        )
 
     else:
         raise ActionExecutionError(
@@ -258,8 +266,7 @@ def execute_modify_drop_field(
 
 
 def execute_modify_drop_item(
-    config: dict[str, Any],
-    context: dict[str, Any]
+    config: dict[str, Any], context: dict[str, Any]
 ) -> dict[str, Any]:
     """
     Execute modify action with drop_item modification type.
@@ -299,7 +306,9 @@ def execute_modify_drop_item(
     try:
         target_array = resolve_field_value(context, target_path)
     except Exception as e:
-        raise ActionExecutionError(f"Failed to resolve target path '{target_path}': {str(e)}")
+        raise ActionExecutionError(
+            f"Failed to resolve target path '{target_path}': {str(e)}"
+        )
 
     if not isinstance(target_array, list):
         raise ActionExecutionError(
@@ -366,8 +375,7 @@ def execute_modify_drop_item(
 
 
 def execute_modify_action(
-    action_config: dict[str, Any],
-    context: dict[str, Any]
+    action_config: dict[str, Any], context: dict[str, Any]
 ) -> dict[str, Any]:
     """
     Execute modify action.
@@ -407,8 +415,7 @@ def execute_modify_action(
 
 
 def apply_multiple_modify_actions(
-    modify_actions: list[dict[str, Any]],
-    context: dict[str, Any]
+    modify_actions: list[dict[str, Any]], context: dict[str, Any]
 ) -> dict[str, Any]:
     """
     Apply multiple modify actions in sequence.

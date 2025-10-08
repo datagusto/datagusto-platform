@@ -98,7 +98,7 @@ export function CreateAgentForm({
           id="name"
           type="text"
           className="w-full border rounded-md px-3 py-2"
-          placeholder="Production API Agent"
+          placeholder="Enter agent name"
           autoFocus
           {...register('name')}
         />

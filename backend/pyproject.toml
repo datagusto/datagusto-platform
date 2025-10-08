@@ -19,7 +19,7 @@ dependencies = [
     "httpx>=0.24.1",
     "python-multipart>=0.0.6",
     "pydantic-settings>=2.8.1",
-    "bcrypt>=4.3.0",
+    "bcrypt==3.2.2",
     "requests>=2.32.3",
     "langchain-openai>=0.3.14",
     "pytest-asyncio>=1.0.0",
@@ -63,3 +63,66 @@ markers = [
     "security: Security tests",
 ]
 asyncio_default_fixture_loop_scope = "function"
+
+
+# ========================================
+# Ruff Configuration
+# ========================================
+[tool.ruff]
+# Maximum line length
+line-length = 88
+# Python version
+target-version = "py312"
+
+# Directories to exclude
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    "alembic/versions",  # Exclude migration files
+]
+
+[tool.ruff.lint]
+# Rules to enable
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort (import order)
+    "B",   # flake8-bugbear (bug prevention rules)
+    "C4",  # flake8-comprehensions (list comprehension improvements)
+    "UP",  # pyupgrade (recommend Python new features)
+]
+
+# Rules to disable
+ignore = [
+    "E501",  # Line length is managed separately
+    "B008",  # Function call in default argument (required for FastAPI)
+    "B904",  # Exception chaining with 'from err' - defer for future cleanup
+    "UP046", # Generic[T] syntax is fine, no need to use PEP 695 style yet
+]
+
+# Per-file ignores
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Allow unused imports
+"tests/**/*.py" = ["B", "F401", "F811"]  # Be more lenient with test files
+
+[tool.ruff.lint.isort]
+# Import order configuration
+known-first-party = ["app"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.format]
+# Format configuration
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

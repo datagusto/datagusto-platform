@@ -5,28 +5,27 @@ This module provides endpoints for user registration, login, token refresh,
 and current user information retrieval.
 """
 
+from datetime import timedelta
+from typing import Any
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
-from typing import Any
-from datetime import timedelta
-import os
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_async_db
 from app.core.auth import get_current_user
-from app.schemas.user import UserCreate, User, UserAuth, UserOrganizationList
-from app.services.auth_service import AuthService
-from app.services.user_service import UserService
-from app.services.permission_service import PermissionService
+from app.core.config import settings
+from app.core.database import get_async_db
 from app.core.security import (
-    decode_refresh_token,
-    create_access_token,
-    create_refresh_token,
     ACCESS_TOKEN_EXPIRE_MINUTES,
-    REFRESH_TOKEN_EXPIRE_DAYS,
+    create_access_token,
+    decode_refresh_token,
 )
-from uuid import UUID
+from app.schemas.user import User, UserAuth, UserCreate, UserOrganizationList
+from app.services.auth_service import AuthService
+from app.services.permission_service import PermissionService
+from app.services.user_service import UserService
 
 router = APIRouter()
 
@@ -57,7 +56,7 @@ async def register(
     Raises:
         HTTPException: If registration is disabled or fails
     """
-    enable_registration = os.getenv("ENABLE_REGISTRATION", "false").lower() == "true"
+    enable_registration = settings.ENABLE_REGISTRATION.lower() == "true"
 
     if not enable_registration:
         raise HTTPException(

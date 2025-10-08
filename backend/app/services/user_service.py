@@ -5,18 +5,18 @@ This service handles user-related operations including profile management,
 authentication updates, and status changes.
 """
 
-from typing import Optional, List, Dict, Any
+from typing import Any
 from uuid import UUID
-from datetime import datetime
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.user_repository import UserRepository
-from app.repositories.user_profile_repository import UserProfileRepository
-from app.repositories.user_auth_repository import UserAuthRepository
-from app.repositories.user_status_repository import UserStatusRepository
-from app.repositories.organization_member_repository import OrganizationMemberRepository
 from app.core.security import get_password_hash, verify_password
+from app.repositories.organization_member_repository import OrganizationMemberRepository
+from app.repositories.user_auth_repository import UserAuthRepository
+from app.repositories.user_profile_repository import UserProfileRepository
+from app.repositories.user_repository import UserRepository
+from app.repositories.user_status_repository import UserStatusRepository
 
 
 class UserService:
@@ -36,7 +36,7 @@ class UserService:
         self.status_repo = UserStatusRepository(db)
         self.member_repo = OrganizationMemberRepository(db)
 
-    async def get_user(self, user_id: UUID) -> Optional[Dict[str, Any]]:
+    async def get_user(self, user_id: UUID) -> dict[str, Any] | None:
         """
         Get user by ID with all related data.
 
@@ -67,12 +67,11 @@ class UserService:
             "bio": user.profile.bio if user.profile else None,
             "avatar_url": user.profile.avatar_url if user.profile else None,
             "is_active": await self.status_repo.is_active(user.id),
-            "is_suspended": await self.status_repo.is_suspended(user.id),
             "is_archived": await self.status_repo.is_archived(user.id),
             "created_at": user.created_at.isoformat() if user.created_at else None,
         }
 
-    async def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+    async def get_user_by_email(self, email: str) -> dict[str, Any] | None:
         """
         Get user by email address.
 
@@ -88,7 +87,7 @@ class UserService:
 
         return await self.get_user(user.id)
 
-    async def get_user_organizations(self, user_id: UUID) -> List[Dict[str, Any]]:
+    async def get_user_organizations(self, user_id: UUID) -> list[dict[str, Any]]:
         """
         Get all organizations that user belongs to.
 
@@ -125,18 +124,20 @@ class UserService:
                 organization_id=org.id, user_id=user_id
             )
 
-            result.append({
-                "id": str(org.id),
-                "name": org.name,
-                "role": "owner" if is_owner else "member",
-                "joined_at": None,  # TODO: Add joined_at from membership record
-            })
+            result.append(
+                {
+                    "id": str(org.id),
+                    "name": org.name,
+                    "role": "owner" if is_owner else "member",
+                    "joined_at": None,  # TODO: Add joined_at from membership record
+                }
+            )
 
         return result
 
     async def update_profile(
-        self, user_id: UUID, profile_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, user_id: UUID, profile_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Update user profile information.
 
@@ -238,68 +239,9 @@ class UserService:
         await self.db.commit()
         return True
 
-    async def suspend_user(
-        self,
-        user_id: UUID,
-        reason: str,
-        suspended_by: UUID,
-        suspended_until: Optional[datetime] = None,
-    ) -> Dict[str, Any]:
-        """
-        Suspend a user account.
-
-        Args:
-            user_id: User UUID to suspend
-            reason: Reason for suspension
-            suspended_by: UUID of user performing suspension
-            suspended_until: Optional end date for suspension
-
-        Returns:
-            Updated user data
-
-        Raises:
-            HTTPException: If user not found
-        """
-        user = await self.user_repo.get_by_id(user_id)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found",
-            )
-
-        await self.status_repo.suspend(user_id, reason, suspended_by, suspended_until)
-        await self.db.commit()
-        return await self.get_user(user_id)
-
-    async def lift_suspension(
-        self, suspension_id: int, lifted_by: UUID
-    ) -> Dict[str, Any]:
-        """
-        Lift user suspension.
-
-        Args:
-            suspension_id: Suspension record ID
-            lifted_by: UUID of user lifting the suspension
-
-        Returns:
-            Updated user data
-
-        Raises:
-            HTTPException: If suspension not found
-        """
-        suspension = await self.status_repo.lift_suspension(suspension_id, lifted_by)
-        if not suspension:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Suspension not found",
-            )
-
-        await self.db.commit()
-        return await self.get_user(suspension.user_id)
-
     async def archive_user(
         self, user_id: UUID, reason: str, archived_by: UUID
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Archive a user account (soft delete).
 
@@ -329,7 +271,7 @@ class UserService:
         await self.db.commit()
         return await self.get_user(user_id)
 
-    async def unarchive_user(self, user_id: UUID) -> Dict[str, Any]:
+    async def unarchive_user(self, user_id: UUID) -> dict[str, Any]:
         """
         Unarchive a user account (restore from soft delete).
 
@@ -359,7 +301,7 @@ class UserService:
 
     async def list_users_in_organization(
         self, organization_id: UUID, limit: int = 100, offset: int = 0
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         List all users in an organization.
 
@@ -384,7 +326,7 @@ class UserService:
 
     async def search_users_by_name(
         self, name_pattern: str, limit: int = 100, offset: int = 0
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search users by name pattern.
 

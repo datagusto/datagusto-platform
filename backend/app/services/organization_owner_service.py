@@ -5,17 +5,18 @@ This service handles organization ownership operations including
 transferring ownership and checking ownership status.
 """
 
-from typing import Optional, Dict, Any
+from typing import Any
 from uuid import UUID
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.organization_owner_repository import OrganizationOwnerRepository
-from app.repositories.organization_repository import OrganizationRepository
-from app.repositories.user_repository import UserRepository
 from app.repositories.organization_member_repository import (
     OrganizationMemberRepository,
 )
+from app.repositories.organization_owner_repository import OrganizationOwnerRepository
+from app.repositories.organization_repository import OrganizationRepository
+from app.repositories.user_repository import UserRepository
 
 
 class OrganizationOwnerService:
@@ -47,7 +48,7 @@ class OrganizationOwnerService:
         """
         return await self.owner_repo.is_owner(organization_id, user_id)
 
-    async def get_owner(self, organization_id: UUID) -> Optional[Dict[str, Any]]:
+    async def get_owner(self, organization_id: UUID) -> dict[str, Any] | None:
         """
         Get the owner of an organization.
 
@@ -87,7 +88,7 @@ class OrganizationOwnerService:
 
         return None
 
-    async def set_owner(self, organization_id: UUID, user_id: UUID) -> Dict[str, Any]:
+    async def set_owner(self, organization_id: UUID, user_id: UUID) -> dict[str, Any]:
         """
         Set the owner of an organization.
 
@@ -148,7 +149,7 @@ class OrganizationOwnerService:
         organization_id: UUID,
         new_owner_user_id: UUID,
         current_owner_user_id: UUID,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Transfer ownership to another user.
 

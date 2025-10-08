@@ -240,8 +240,6 @@ def resolve_ambiguity(ambiguity):
         return mark_as_unresolved(ambiguity)
 ```
 
- 
-
 ### Step 3: Generate Clarification Questions
 For unresolved ambiguities, create user-friendly questions:
 

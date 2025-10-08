@@ -5,9 +5,10 @@ This service handles organization-related operations including CRUD operations,
 status management, and organization queries.
 """
 
-from typing import Optional, List, Dict, Any
-from uuid import UUID
 from datetime import datetime
+from typing import Any
+from uuid import UUID
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,7 +28,7 @@ class OrganizationService:
         self.db = db
         self.org_repo = OrganizationRepository(db)
 
-    async def get_organization(self, organization_id: UUID) -> Dict[str, Any]:
+    async def get_organization(self, organization_id: UUID) -> dict[str, Any]:
         """
         Get organization by ID with all related data.
 
@@ -58,8 +59,8 @@ class OrganizationService:
         }
 
     async def create_organization(
-        self, org_data: Dict[str, Any], created_by: UUID
-    ) -> Dict[str, Any]:
+        self, org_data: dict[str, Any], created_by: UUID
+    ) -> dict[str, Any]:
         """
         Create a new organization.
 
@@ -91,8 +92,8 @@ class OrganizationService:
             )
 
     async def update_organization(
-        self, organization_id: UUID, update_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, organization_id: UUID, update_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Update organization information.
 
@@ -121,8 +122,8 @@ class OrganizationService:
         organization_id: UUID,
         reason: str,
         suspended_by: UUID,
-        suspended_until: Optional[datetime] = None,
-    ) -> Dict[str, Any]:
+        suspended_until: datetime | None = None,
+    ) -> dict[str, Any]:
         """
         Suspend an organization.
 
@@ -153,7 +154,7 @@ class OrganizationService:
 
     async def lift_suspension(
         self, suspension_id: int, lifted_by: UUID
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Lift organization suspension.
 
@@ -179,7 +180,7 @@ class OrganizationService:
 
     async def archive_organization(
         self, organization_id: UUID, reason: str, archived_by: UUID
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Archive an organization (soft delete).
 
@@ -209,7 +210,7 @@ class OrganizationService:
         await self.db.commit()
         return await self.get_organization(organization_id)
 
-    async def unarchive_organization(self, organization_id: UUID) -> Dict[str, Any]:
+    async def unarchive_organization(self, organization_id: UUID) -> dict[str, Any]:
         """
         Unarchive an organization (restore from soft delete).
 
@@ -239,7 +240,7 @@ class OrganizationService:
 
     async def list_active_organizations(
         self, limit: int = 100, offset: int = 0
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         List all active organizations.
 

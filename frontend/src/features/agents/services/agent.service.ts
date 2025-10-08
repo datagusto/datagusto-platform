@@ -13,7 +13,6 @@ import type {
   AgentListResponse,
   AgentCreate,
   AgentUpdate,
-  AgentAPIKey,
   AgentAPIKeyCreate,
   AgentAPIKeyCreateResponse,
   AgentAPIKeyListResponse,
@@ -145,10 +144,7 @@ export const agentService = {
     agentId: string,
     data: AgentAPIKeyCreate
   ): Promise<AgentAPIKeyCreateResponse> {
-    return post<AgentAPIKeyCreateResponse>(
-      `/agents/${agentId}/api-keys`,
-      data
-    );
+    return post<AgentAPIKeyCreateResponse>(`/agents/${agentId}/api-keys`, data);
   },
 
   /**

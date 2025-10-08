@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Any
+
+from fastapi import HTTPException, status
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import HTTPException, status
 
 from app.core.config import settings
 
@@ -28,7 +29,7 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(
-    data: Dict[str, Any], expires_delta: Optional[timedelta] = None
+    data: dict[str, Any], expires_delta: timedelta | None = None
 ) -> str:
     """
     Create a JWT access token.
@@ -57,7 +58,7 @@ def create_access_token(
 
 
 def create_refresh_token(
-    data: Dict[str, Any], expires_delta: Optional[timedelta] = None
+    data: dict[str, Any], expires_delta: timedelta | None = None
 ) -> str:
     """
     Create a JWT refresh token.
@@ -86,7 +87,7 @@ def create_refresh_token(
     return encoded_jwt
 
 
-def decode_access_token(token: str) -> Dict[str, Any]:
+def decode_access_token(token: str) -> dict[str, Any]:
     """Decode and verify a JWT access token."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -102,7 +103,7 @@ def decode_access_token(token: str) -> Dict[str, Any]:
         raise credentials_exception
 
 
-def decode_refresh_token(token: str) -> Dict[str, Any]:
+def decode_refresh_token(token: str) -> dict[str, Any]:
     """Decode and verify a JWT refresh token."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -119,6 +120,7 @@ def decode_refresh_token(token: str) -> Dict[str, Any]:
 
 
 # API Key generation and verification
+
 
 def generate_api_key(prefix: str = "agt_live") -> str:
     """
@@ -145,9 +147,7 @@ def generate_api_key(prefix: str = "agt_live") -> str:
     """
     import secrets
 
-    # Generate 24 random bytes (192 bits) -> 32 base64 characters
-    random_bytes = secrets.token_bytes(24)
-    # Convert to URL-safe base64 (no padding)
+    # Generate URL-safe random suffix (24 bytes -> 32 base64 characters)
     random_suffix = secrets.token_urlsafe(24)[:32]
 
     return f"{prefix}_{random_suffix}"

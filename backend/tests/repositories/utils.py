@@ -7,18 +7,18 @@ comparing objects in repository layer tests.
 
 from typing import Any, Optional
 from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
-from app.models.user import User, UserProfile, UserLoginPassword, UserActiveStatus
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.organization import (
     Organization,
+    OrganizationActiveStatus,
+    OrganizationAdmin,
     OrganizationMember,
     OrganizationOwner,
-    OrganizationAdmin,
-    OrganizationActiveStatus,
 )
-
+from app.models.user import User, UserActiveStatus, UserLoginPassword, UserProfile
 
 # ============================================================================
 # Assertion Utilities
@@ -56,18 +56,18 @@ def assert_user_matches(
         assert actual.id == expected_id, f"Expected ID {expected_id}, got {actual.id}"
 
     if expected_email is not None:
-        assert (
-            actual.login_password is not None
-        ), "User has no login_password relationship"
-        assert (
-            actual.login_password.email == expected_email
-        ), f"Expected email {expected_email}, got {actual.login_password.email}"
+        assert actual.login_password is not None, (
+            "User has no login_password relationship"
+        )
+        assert actual.login_password.email == expected_email, (
+            f"Expected email {expected_email}, got {actual.login_password.email}"
+        )
 
     if expected_name is not None:
         assert actual.profile is not None, "User has no profile relationship"
-        assert (
-            actual.profile.name == expected_name
-        ), f"Expected name {expected_name}, got {actual.profile.name}"
+        assert actual.profile.name == expected_name, (
+            f"Expected name {expected_name}, got {actual.profile.name}"
+        )
 
     # Verify timestamps exist
     assert actual.created_at is not None, "User has no created_at timestamp"
@@ -102,24 +102,22 @@ def assert_organization_matches(
         ... )
     """
     if expected_id is not None:
-        assert (
-            actual.id == expected_id
-        ), f"Expected ID {expected_id}, got {actual.id}"
+        assert actual.id == expected_id, f"Expected ID {expected_id}, got {actual.id}"
 
     if expected_name is not None:
-        assert (
-            actual.name == expected_name
-        ), f"Expected name {expected_name}, got {actual.name}"
+        assert actual.name == expected_name, (
+            f"Expected name {expected_name}, got {actual.name}"
+        )
 
     if expected_active is not None:
         if expected_active:
-            assert (
-                actual.active_status is not None
-            ), "Expected organization to be active, but has no active_status"
+            assert actual.active_status is not None, (
+                "Expected organization to be active, but has no active_status"
+            )
         else:
-            assert (
-                actual.active_status is None
-            ), "Expected organization to be inactive, but has active_status"
+            assert actual.active_status is None, (
+                "Expected organization to be inactive, but has active_status"
+            )
 
     # Verify timestamps exist
     assert actual.created_at is not None, "Organization has no created_at timestamp"
@@ -169,9 +167,9 @@ async def assert_relationship_exists(
         )
         result = await session.execute(stmt)
         member = result.scalar_one_or_none()
-        assert (
-            member is not None
-        ), f"No membership found for user {user_id} in org {organization_id}"
+        assert member is not None, (
+            f"No membership found for user {user_id} in org {organization_id}"
+        )
 
     elif relationship_type == "owner":
         if user_id is None or organization_id is None:
@@ -183,9 +181,9 @@ async def assert_relationship_exists(
         )
         result = await session.execute(stmt)
         owner = result.scalar_one_or_none()
-        assert (
-            owner is not None
-        ), f"No ownership found for user {user_id} in org {organization_id}"
+        assert owner is not None, (
+            f"No ownership found for user {user_id} in org {organization_id}"
+        )
 
     elif relationship_type == "admin":
         if user_id is None or organization_id is None:
@@ -197,9 +195,9 @@ async def assert_relationship_exists(
         )
         result = await session.execute(stmt)
         admin = result.scalar_one_or_none()
-        assert (
-            admin is not None
-        ), f"No admin role found for user {user_id} in org {organization_id}"
+        assert admin is not None, (
+            f"No admin role found for user {user_id} in org {organization_id}"
+        )
 
     else:
         raise ValueError(
@@ -213,7 +211,7 @@ async def assert_relationship_exists(
 # ============================================================================
 
 
-async def query_user_by_id(session: AsyncSession, user_id: UUID) -> Optional[User]:
+async def query_user_by_id(session: AsyncSession, user_id: UUID) -> User | None:
     """
     Query user by ID directly from database.
 
@@ -235,7 +233,7 @@ async def query_user_by_id(session: AsyncSession, user_id: UUID) -> Optional[Use
 
 async def query_organization_by_id(
     session: AsyncSession, org_id: UUID
-) -> Optional[Organization]:
+) -> Organization | None:
     """
     Query organization by ID directly from database.
 

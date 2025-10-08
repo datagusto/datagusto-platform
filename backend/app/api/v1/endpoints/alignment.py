@@ -1,7 +1,9 @@
-from typing import Dict, List, Any
 import uuid
+from typing import Any
+
 from fastapi import APIRouter
 from pydantic import BaseModel
+
 from app.agent.graph import compile_graph, graph_initial, graph_resume
 
 router = APIRouter()
@@ -18,9 +20,9 @@ class AlignmentResponse(BaseModel):
     """Response body for the alignment endpoint (dummy)."""
 
     session_id: str
-    all_ambiguities: List[Dict[str, Any]]
-    unresolved_ambiguities: List[Dict[str, Any]]
-    resolved_ambiguities: List[Dict[str, Any]]
+    all_ambiguities: list[dict[str, Any]]
+    unresolved_ambiguities: list[dict[str, Any]]
+    resolved_ambiguities: list[dict[str, Any]]
     next_instruction: str
 
 

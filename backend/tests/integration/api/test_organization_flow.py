@@ -5,9 +5,9 @@ Tests complete organization management workflows end-to-end with real database.
 Covers organization CRUD, member management, and role-based access control.
 """
 
-import pytest
 from uuid import UUID
 
+import pytest
 
 # Mark all tests as integration tests
 pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
@@ -98,13 +98,20 @@ async def test_update_organization_as_owner(integration_client):
     assert owner_response.status_code == 200
     owner = owner_response.json()
 
+    # Get organization ID from /me/organizations endpoint
+    owner_orgs = await integration_client.get(
+        "/api/v1/auth/me/organizations",
+        headers={"Authorization": f"Bearer {owner['access_token']}"},
+    )
+    owner_org_id = owner_orgs.json()["organizations"][0]["id"]
+
     # Act - Update organization as owner
     update_data = {
         "name": "Updated Organization Name",
     }
 
     update_response = await integration_client.patch(
-        f"/api/v1/organizations/{owner['organization_id']}",
+        f"/api/v1/organizations/{owner_org_id}",
         json=update_data,
         headers={"Authorization": f"Bearer {owner['access_token']}"},
     )
@@ -116,7 +123,7 @@ async def test_update_organization_as_owner(integration_client):
 
     # Verify changes persisted - GET organization again
     get_response = await integration_client.get(
-        f"/api/v1/organizations/{owner['organization_id']}",
+        f"/api/v1/organizations/{owner_org_id}",
         headers={"Authorization": f"Bearer {owner['access_token']}"},
     )
     assert get_response.status_code == 200
@@ -140,7 +147,7 @@ async def test_update_organization_as_owner(integration_client):
 
     # Attempt to update as non-owner - should fail
     forbidden_update = await integration_client.patch(
-        f"/api/v1/organizations/{owner['organization_id']}",
+        f"/api/v1/organizations/{owner_org_id}",
         json={"name": "Hacked Name"},
         headers={"Authorization": f"Bearer {non_owner['access_token']}"},
     )
@@ -176,6 +183,13 @@ async def test_add_member_to_organization(integration_client):
     assert owner_response.status_code == 200
     owner = owner_response.json()
 
+    # Get organization ID from /me/organizations endpoint
+    owner_orgs = await integration_client.get(
+        "/api/v1/auth/me/organizations",
+        headers={"Authorization": f"Bearer {owner['access_token']}"},
+    )
+    owner_org_id = owner_orgs.json()["organizations"][0]["id"]
+
     # Register user to be added as member
     member_data = {
         "email": "newmember@example.com",
@@ -196,7 +210,7 @@ async def test_add_member_to_organization(integration_client):
     }
 
     add_response = await integration_client.post(
-        f"/api/v1/organizations/{owner['organization_id']}/members",
+        f"/api/v1/organizations/{owner_org_id}/members",
         json=add_member_data,
         headers={"Authorization": f"Bearer {owner['access_token']}"},
     )
@@ -207,11 +221,11 @@ async def test_add_member_to_organization(integration_client):
     assert add_response.status_code in [200, 201]
     membership = add_response.json()
     assert membership["user_id"] == member["user_id"]
-    assert membership["organization_id"] == owner["organization_id"]
+    assert membership["organization_id"] == owner_org_id
 
     # Verify member appears in members list
     list_response = await integration_client.get(
-        f"/api/v1/organizations/{owner['organization_id']}/members",
+        f"/api/v1/organizations/{owner_org_id}/members",
         headers={"Authorization": f"Bearer {owner['access_token']}"},
     )
     assert list_response.status_code == 200
@@ -250,6 +264,13 @@ async def test_remove_member_from_organization(integration_client):
     assert owner_response.status_code == 200
     owner = owner_response.json()
 
+    # Get organization ID from /me/organizations endpoint
+    owner_orgs = await integration_client.get(
+        "/api/v1/auth/me/organizations",
+        headers={"Authorization": f"Bearer {owner['access_token']}"},
+    )
+    owner_org_id = owner_orgs.json()["organizations"][0]["id"]
+
     # Register and add member
     member_data = {
         "email": "removemember@example.com",
@@ -266,7 +287,7 @@ async def test_remove_member_from_organization(integration_client):
 
     # Add member to organization
     add_response = await integration_client.post(
-        f"/api/v1/organizations/{owner['organization_id']}/members",
+        f"/api/v1/organizations/{owner_org_id}/members",
         json={"user_id": member["user_id"]},
         headers={"Authorization": f"Bearer {owner['access_token']}"},
     )
@@ -274,7 +295,7 @@ async def test_remove_member_from_organization(integration_client):
 
     # Act - Remove member
     remove_response = await integration_client.delete(
-        f"/api/v1/organizations/{owner['organization_id']}/members/{member['user_id']}",
+        f"/api/v1/organizations/{owner_org_id}/members/{member['user_id']}",
         headers={"Authorization": f"Bearer {owner['access_token']}"},
     )
 
@@ -283,7 +304,7 @@ async def test_remove_member_from_organization(integration_client):
 
     # Verify member no longer in list
     list_response = await integration_client.get(
-        f"/api/v1/organizations/{owner['organization_id']}/members",
+        f"/api/v1/organizations/{owner_org_id}/members",
         headers={"Authorization": f"Bearer {owner['access_token']}"},
     )
     assert list_response.status_code == 200
@@ -322,6 +343,13 @@ async def test_member_cannot_add_or_remove_members(integration_client):
     assert owner_response.status_code == 200
     owner = owner_response.json()
 
+    # Get organization ID from /me/organizations endpoint
+    owner_orgs = await integration_client.get(
+        "/api/v1/auth/me/organizations",
+        headers={"Authorization": f"Bearer {owner['access_token']}"},
+    )
+    owner_org_id = owner_orgs.json()["organizations"][0]["id"]
+
     # Register member
     member_data = {
         "email": "permmember@example.com",
@@ -338,7 +366,7 @@ async def test_member_cannot_add_or_remove_members(integration_client):
 
     # Add as member
     await integration_client.post(
-        f"/api/v1/organizations/{owner['organization_id']}/members",
+        f"/api/v1/organizations/{owner_org_id}/members",
         json={"user_id": member["user_id"]},
         headers={"Authorization": f"Bearer {owner['access_token']}"},
     )
@@ -359,7 +387,7 @@ async def test_member_cannot_add_or_remove_members(integration_client):
 
     # Act - Member tries to add new user (should fail)
     add_attempt = await integration_client.post(
-        f"/api/v1/organizations/{owner['organization_id']}/members",
+        f"/api/v1/organizations/{owner_org_id}/members",
         json={"user_id": new_user["user_id"]},
         headers={"Authorization": f"Bearer {member['access_token']}"},
     )
@@ -369,7 +397,7 @@ async def test_member_cannot_add_or_remove_members(integration_client):
 
     # Member can view member list
     list_response = await integration_client.get(
-        f"/api/v1/organizations/{owner['organization_id']}/members",
+        f"/api/v1/organizations/{owner_org_id}/members",
         headers={"Authorization": f"Bearer {member['access_token']}"},
     )
     assert list_response.status_code == 200

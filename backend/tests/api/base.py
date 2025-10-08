@@ -4,11 +4,12 @@ Base test class for controller layer tests.
 This module provides a base class with helper methods for API testing.
 """
 
-from typing import Any, Dict, Optional
-from httpx import AsyncClient, Response
+from typing import Any, Optional
 from unittest.mock import AsyncMock
 
-from tests.utils import assert_response_success, assert_response_error
+from httpx import AsyncClient, Response
+
+from tests.utils import assert_response_error, assert_response_success
 
 
 class BaseControllerTest:
@@ -27,10 +28,10 @@ class BaseControllerTest:
         client: AsyncClient,
         method: str,
         url: str,
-        headers: Optional[Dict[str, str]] = None,
-        json: Optional[Dict[str, Any]] = None,
-        data: Optional[Dict[str, Any]] = None,
-        params: Optional[Dict[str, Any]] = None,
+        headers: dict[str, str] | None = None,
+        json: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
     ) -> Response:
         """
         Make HTTP request to API endpoint.
@@ -66,8 +67,8 @@ class BaseControllerTest:
         self,
         response: Response,
         expected_status: int = 200,
-        expected_keys: Optional[list[str]] = None,
-    ) -> Dict[str, Any]:
+        expected_keys: list[str] | None = None,
+    ) -> dict[str, Any]:
         """
         Assert successful response and validate structure.
 
@@ -95,8 +96,8 @@ class BaseControllerTest:
         self,
         response: Response,
         expected_status: int,
-        expected_detail: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        expected_detail: str | None = None,
+    ) -> dict[str, Any]:
         """
         Assert error response and validate structure.
 
@@ -119,7 +120,7 @@ class BaseControllerTest:
         service: AsyncMock,
         method_name: str,
         return_value: Any = None,
-        side_effect: Optional[Exception] = None,
+        side_effect: Exception | None = None,
     ) -> AsyncMock:
         """
         Configure mock service method.

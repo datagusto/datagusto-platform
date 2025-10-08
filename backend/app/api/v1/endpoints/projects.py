@@ -5,33 +5,36 @@ This module provides endpoints for project management including CRUD operations,
 member management, and owner management.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any
 from uuid import UUID
 
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.auth import require_organization_member
 from app.core.database import get_async_db
-from app.core.auth import require_organization_member, require_organization_admin
-from app.core.multi_tenant import extract_organization_id_from_header
+from app.repositories.project_member_repository import ProjectMemberRepository
+from app.schemas.agent import AgentCreate, AgentListResponse, AgentResponse
+from app.schemas.guardrail import (
+    GuardrailCreate,
+    GuardrailListResponse,
+    GuardrailResponse,
+)
 from app.schemas.project import (
+    ProjectArchiveRequest,
     ProjectCreate,
-    ProjectUpdate,
-    ProjectResponse,
     ProjectListResponse,
+    ProjectMemberCreate,
+    ProjectMemberListResponse,
+    ProjectMemberResponse,
     ProjectOwnerResponse,
     ProjectOwnerUpdate,
-    ProjectMemberResponse,
-    ProjectMemberListResponse,
-    ProjectMemberCreate,
-    ProjectArchiveRequest,
+    ProjectResponse,
+    ProjectUpdate,
 )
-from app.schemas.agent import AgentCreate, AgentResponse, AgentListResponse
-from app.schemas.guardrail import GuardrailCreate, GuardrailResponse, GuardrailListResponse
-from app.services.project_service import ProjectService
 from app.services.agent_service import AgentService
 from app.services.guardrail_service import GuardrailService
-from app.repositories.project_member_repository import ProjectMemberRepository
-from app.repositories.project_owner_repository import ProjectOwnerRepository
+from app.services.project_service import ProjectService
 
 router = APIRouter()
 
@@ -224,6 +227,7 @@ async def archive_project(
 
 # Owner management endpoints
 
+
 @router.get("/{project_id}/owner", response_model=ProjectOwnerResponse)
 async def get_project_owner(
     project_id: UUID,
@@ -301,6 +305,7 @@ async def transfer_project_ownership(
 
 
 # Member management endpoints
+
 
 @router.get("/{project_id}/members", response_model=ProjectMemberListResponse)
 async def list_project_members(
@@ -388,7 +393,9 @@ async def add_project_member(
     )
 
 
-@router.delete("/{project_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{project_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def remove_project_member(
     project_id: UUID,
     user_id: UUID,
@@ -424,6 +431,7 @@ async def remove_project_member(
 
 
 # Agent endpoints (project-scoped)
+
 
 @router.get("/{project_id}/agents", response_model=AgentListResponse)
 async def list_agents(
@@ -529,6 +537,7 @@ async def create_agent(
 
 
 # Guardrail endpoints (project-scoped)
+
 
 @router.get("/{project_id}/guardrails", response_model=GuardrailListResponse)
 async def list_guardrails(

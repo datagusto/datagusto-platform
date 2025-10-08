@@ -7,8 +7,10 @@ and UUID primary key generation helpers.
 """
 
 import uuid
-from sqlalchemy import Column, TIMESTAMP, func
+
+from sqlalchemy import TIMESTAMP, Column, func
 from sqlalchemy.dialects.postgresql import UUID
+
 from app.core.database import Base
 
 

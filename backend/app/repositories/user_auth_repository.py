@@ -4,10 +4,10 @@ User authentication repository for database operations.
 This repository handles password-based authentication credentials.
 """
 
-from typing import Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from uuid import UUID
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import UserLoginPassword
 from app.repositories.base_repository import BaseRepository
@@ -25,7 +25,7 @@ class UserAuthRepository(BaseRepository[UserLoginPassword]):
         """
         super().__init__(db, UserLoginPassword)
 
-    async def get_by_user_id(self, user_id: UUID) -> Optional[UserLoginPassword]:
+    async def get_by_user_id(self, user_id: UUID) -> UserLoginPassword | None:
         """
         Get authentication credentials by user ID.
 
@@ -39,7 +39,7 @@ class UserAuthRepository(BaseRepository[UserLoginPassword]):
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_by_email(self, email: str) -> Optional[UserLoginPassword]:
+    async def get_by_email(self, email: str) -> UserLoginPassword | None:
         """
         Get authentication credentials by email.
 
@@ -82,7 +82,7 @@ class UserAuthRepository(BaseRepository[UserLoginPassword]):
 
     async def update_password(
         self, user_id: UUID, new_hashed_password: str
-    ) -> Optional[UserLoginPassword]:
+    ) -> UserLoginPassword | None:
         """
         Update user password.
 
@@ -103,7 +103,7 @@ class UserAuthRepository(BaseRepository[UserLoginPassword]):
 
     async def update_email(
         self, user_id: UUID, new_email: str
-    ) -> Optional[UserLoginPassword]:
+    ) -> UserLoginPassword | None:
         """
         Update user email.
 

@@ -5,13 +5,13 @@ Tests verify profile database operations using PostgreSQL test database
 with transaction rollback for isolation.
 """
 
-import pytest
 from uuid import UUID, uuid4
+
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.user_profile_repository import UserProfileRepository
 from tests.repositories.conftest import seed_test_user
-
 
 # ============================================================================
 # Test: create_profile() - Create user profile

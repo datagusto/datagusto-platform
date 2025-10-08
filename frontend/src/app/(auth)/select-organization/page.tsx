@@ -44,7 +44,7 @@ import type { UserOrganization } from '@/features/auth/types';
 export default function SelectOrganizationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get('from') || 'login';
+  const _from = searchParams.get('from') || 'login';
 
   const setCurrentOrganization = useAuthStore(
     (state) => state.setCurrentOrganization
@@ -207,8 +207,7 @@ export default function SelectOrganizationPage() {
                       </span>
                       {org.joined_at && (
                         <span className="text-xs text-gray-500">
-                          Joined{' '}
-                          {new Date(org.joined_at).toLocaleDateString()}
+                          Joined {new Date(org.joined_at).toLocaleDateString()}
                         </span>
                       )}
                     </div>

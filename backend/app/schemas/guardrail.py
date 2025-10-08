@@ -6,7 +6,7 @@ including JSONB definition validation.
 """
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -158,12 +158,10 @@ class GuardrailUpdate(BaseModel):
         ... )
     """
 
-    name: Optional[str] = Field(
+    name: str | None = Field(
         None, min_length=1, max_length=255, description="Guardrail name"
     )
-    definition: Optional[dict[str, Any]] = Field(
-        None, description="JSONB definition"
-    )
+    definition: dict[str, Any] | None = Field(None, description="JSONB definition")
 
 
 class GuardrailResponse(GuardrailBase):
@@ -268,7 +266,7 @@ class GuardrailArchiveRequest(BaseModel):
         ... )
     """
 
-    reason: Optional[str] = Field(None, description="Reason for archiving")
+    reason: str | None = Field(None, description="Reason for archiving")
 
 
 class GuardrailListResponse(BaseModel):

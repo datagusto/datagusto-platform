@@ -1,30 +1,34 @@
-from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel
-from typing import Optional, Dict, Any
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime
+from typing import Any
 from uuid import UUID
 
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordBearer
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import get_async_db
-from app.core.security import decode_access_token, verify_api_key_hash, extract_key_prefix
 from app.core.multi_tenant import extract_organization_id_from_header
+from app.core.security import (
+    decode_access_token,
+    extract_key_prefix,
+    verify_api_key_hash,
+)
 from app.repositories.user_repository import UserRepository
 from app.repositories.user_status_repository import UserStatusRepository
-from app.repositories.organization_member_repository import OrganizationMemberRepository
 from app.services.permission_service import PermissionService
-from datetime import datetime
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/token")
 
 
 class TokenData(BaseModel):
-    user_id: Optional[str] = None
-    organization_id: Optional[str] = None
+    user_id: str | None = None
+    organization_id: str | None = None
 
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_async_db)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get current authenticated user from JWT token.
 
@@ -78,9 +82,9 @@ async def get_current_user(
 
 
 async def get_current_active_user(
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_db),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get current authenticated user and verify they are active.
 
@@ -112,9 +116,9 @@ async def get_current_active_user(
 
 async def get_current_user_with_org(
     request: Request,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_db),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get current user with full profile and organization information.
 
@@ -149,9 +153,9 @@ async def get_current_user_with_org(
 
 async def require_organization_member(
     request: Request,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_db),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Require user to be a member of the organization.
 
@@ -201,9 +205,9 @@ async def require_organization_member(
 
 async def require_organization_admin(
     request: Request,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_db),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Require user to be an admin of the organization.
 
@@ -254,9 +258,9 @@ async def require_organization_admin(
 
 async def require_organization_owner(
     request: Request,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: dict[str, Any] = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_db),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Require user to be the owner of the organization.
 
@@ -307,7 +311,7 @@ async def require_organization_owner(
 
 async def get_current_agent_from_api_key(
     token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_async_db)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Authenticate and get agent information from API key.
 
@@ -340,7 +344,8 @@ async def get_current_agent_from_api_key(
         - Returns agent context for authorization checks
     """
     from sqlalchemy import select, update
-    from app.models.agent import AgentAPIKey, Agent
+
+    from app.models.agent import Agent, AgentAPIKey
 
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -398,13 +403,13 @@ async def get_current_agent_from_api_key(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise credentials_exception
 
 
 async def get_current_user_or_agent(
     token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_async_db)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Authenticate with either JWT token or API key.
 

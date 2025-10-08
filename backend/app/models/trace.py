@@ -14,14 +14,14 @@ Models:
 """
 
 from sqlalchemy import (
+    TIMESTAMP,
     Column,
-    Text,
     ForeignKey,
     Index,
-    TIMESTAMP,
+    Text,
 )
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 from app.models.base import BaseModel, uuid_column
 

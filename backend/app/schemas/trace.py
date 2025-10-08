@@ -6,7 +6,7 @@ API operations, supporting hierarchical observation trees.
 """
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -55,7 +55,7 @@ class TraceCreate(TraceBase):
     """
 
     agent_id: UUID = Field(..., description="Agent this trace belongs to")
-    started_at: Optional[datetime] = Field(
+    started_at: datetime | None = Field(
         None, description="When trace started (defaults to now())"
     )
 
@@ -74,15 +74,15 @@ class TraceUpdate(BaseModel):
         ... )
     """
 
-    status: Optional[str] = Field(
+    status: str | None = Field(
         None,
         description="Execution status",
         pattern="^(pending|running|completed|failed|error)$",
     )
-    ended_at: Optional[datetime] = Field(
+    ended_at: datetime | None = Field(
         None, description="When trace completed (NULL = still running)"
     )
-    trace_metadata: Optional[dict[str, Any]] = Field(
+    trace_metadata: dict[str, Any] | None = Field(
         None, description="JSONB metadata", alias="metadata"
     )
 
@@ -127,13 +127,13 @@ class TraceResponse(TraceBase):
     project_id: UUID
     organization_id: UUID
     started_at: datetime
-    ended_at: Optional[datetime] = None
+    ended_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
     observation_count: int = Field(
         default=0, description="Number of observations (computed)"
     )
-    duration_ms: Optional[int] = Field(
+    duration_ms: int | None = Field(
         None, description="Duration in milliseconds (computed)"
     )
 
@@ -156,9 +156,7 @@ class ObservationBase(BaseModel):
         description="Observation type",
         pattern="^(llm|tool|retriever|agent|embedding|reranker|custom)$",
     )
-    name: str = Field(
-        ..., min_length=1, max_length=255, description="Display name"
-    )
+    name: str = Field(..., min_length=1, max_length=255, description="Display name")
     status: str = Field(
         default="pending",
         description="Execution status",
@@ -193,10 +191,10 @@ class ObservationCreate(ObservationBase):
     """
 
     trace_id: UUID = Field(..., description="Trace this observation belongs to")
-    parent_observation_id: Optional[UUID] = Field(
+    parent_observation_id: UUID | None = Field(
         None, description="Parent observation for hierarchy (NULL = root)"
     )
-    started_at: Optional[datetime] = Field(
+    started_at: datetime | None = Field(
         None, description="When observation started (defaults to now())"
     )
 
@@ -215,15 +213,15 @@ class ObservationUpdate(BaseModel):
         ... )
     """
 
-    status: Optional[str] = Field(
+    status: str | None = Field(
         None,
         description="Execution status",
         pattern="^(pending|running|completed|failed|error)$",
     )
-    ended_at: Optional[datetime] = Field(
+    ended_at: datetime | None = Field(
         None, description="When observation completed (NULL = still running)"
     )
-    observation_metadata: Optional[dict[str, Any]] = Field(
+    observation_metadata: dict[str, Any] | None = Field(
         None, description="JSONB metadata", alias="metadata"
     )
 
@@ -267,13 +265,13 @@ class ObservationResponse(ObservationBase):
 
     id: UUID
     trace_id: UUID
-    parent_observation_id: Optional[UUID] = None
+    parent_observation_id: UUID | None = None
     started_at: datetime
-    ended_at: Optional[datetime] = None
+    ended_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
     child_count: int = Field(default=0, description="Number of child observations")
-    duration_ms: Optional[int] = Field(
+    duration_ms: int | None = Field(
         None, description="Duration in milliseconds (computed)"
     )
 

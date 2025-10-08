@@ -4,9 +4,9 @@ Organization schemas for API request/response validation.
 These schemas align with the ultra-fine-grained data model for organizations.
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
 from datetime import datetime
+
+from pydantic import BaseModel, Field
 
 
 class OrganizationCreate(BaseModel):
@@ -18,14 +18,14 @@ class OrganizationCreate(BaseModel):
 class OrganizationUpdate(BaseModel):
     """Schema for updating an organization."""
 
-    name: Optional[str] = Field(None, min_length=1, description="Organization name")
+    name: str | None = Field(None, min_length=1, description="Organization name")
 
 
 class OrganizationSuspend(BaseModel):
     """Schema for suspending an organization."""
 
     reason: str = Field(..., description="Reason for suspension")
-    suspended_until: Optional[datetime] = Field(
+    suspended_until: datetime | None = Field(
         None, description="Suspension end date (permanent if not provided)"
     )
 
@@ -44,10 +44,8 @@ class Organization(BaseModel):
     is_active: bool = Field(..., description="Whether organization is active")
     is_suspended: bool = Field(..., description="Whether organization is suspended")
     is_archived: bool = Field(..., description="Whether organization is archived")
-    created_at: Optional[str] = Field(
-        None, description="Organization creation timestamp"
-    )
-    updated_at: Optional[str] = Field(None, description="Organization update timestamp")
+    created_at: str | None = Field(None, description="Organization creation timestamp")
+    updated_at: str | None = Field(None, description="Organization update timestamp")
 
     class Config:
         from_attributes = True
@@ -72,9 +70,9 @@ class OrganizationMember(BaseModel):
     """Schema for organization member response."""
 
     id: str = Field(..., description="User UUID")
-    email: Optional[str] = Field(None, description="User email address")
-    name: Optional[str] = Field(None, description="User display name")
-    avatar_url: Optional[str] = Field(None, description="User avatar URL")
+    email: str | None = Field(None, description="User email address")
+    name: str | None = Field(None, description="User display name")
+    avatar_url: str | None = Field(None, description="User avatar URL")
 
     class Config:
         from_attributes = True

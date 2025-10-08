@@ -5,29 +5,30 @@ This module provides endpoints for organization management,
 member management, admin management, and ownership transfer.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Any, List
+from typing import Any
 from uuid import UUID
 
-from app.core.database import get_async_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.auth import get_current_user
+from app.core.database import get_async_db
 from app.schemas.organization import (
     Organization,
-    OrganizationCreate,
-    OrganizationUpdate,
-    OrganizationSuspend,
-    OrganizationArchive,
-    OrganizationMemberAdd,
-    OrganizationMember,
     OrganizationAdminGrant,
+    OrganizationArchive,
+    OrganizationCreate,
+    OrganizationMember,
+    OrganizationMemberAdd,
     OrganizationOwnerTransfer,
+    OrganizationSuspend,
+    OrganizationUpdate,
     PermissionSummary,
 )
-from app.services.organization_service import OrganizationService
-from app.services.organization_member_service import OrganizationMemberService
 from app.services.organization_admin_service import OrganizationAdminService
+from app.services.organization_member_service import OrganizationMemberService
 from app.services.organization_owner_service import OrganizationOwnerService
+from app.services.organization_service import OrganizationService
 from app.services.permission_service import PermissionService
 
 router = APIRouter()
@@ -44,6 +45,9 @@ async def get_organization(
 ) -> Any:
     """
     Get organization by ID.
+
+    Note: This endpoint allows any authenticated user to read organization details.
+    Modification operations (PATCH, DELETE) require appropriate permissions.
 
     Args:
         organization_id: Organization UUID
@@ -201,7 +205,7 @@ async def archive_organization(
 # Member management endpoints
 
 
-@router.get("/{organization_id}/members", response_model=List[OrganizationMember])
+@router.get("/{organization_id}/members", response_model=list[OrganizationMember])
 async def list_members(
     organization_id: UUID,
     limit: int = Query(100, ge=1, le=1000),
@@ -312,7 +316,7 @@ async def remove_member(
 # Admin management endpoints
 
 
-@router.get("/{organization_id}/admins", response_model=List[OrganizationMember])
+@router.get("/{organization_id}/admins", response_model=list[OrganizationMember])
 async def list_admins(
     organization_id: UUID,
     limit: int = Query(100, ge=1, le=1000),

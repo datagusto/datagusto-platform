@@ -8,7 +8,9 @@ import { UserMenu } from './user-menu';
 export function Sidebar() {
   const pathname = usePathname();
   const params = useParams();
-  const currentOrganizationId = useAuthStore((state) => state.currentOrganizationId);
+  const currentOrganizationId = useAuthStore(
+    (state) => state.currentOrganizationId
+  );
 
   // Check if we're on a project detail page
   const projectId = params?.projectId as string | undefined;
@@ -29,10 +31,19 @@ export function Sidebar() {
           <>
             {/* Back to Projects link */}
             <Link
-              href={currentOrganizationId ? `/organizations/${currentOrganizationId}` : '/select-organization'}
+              href={
+                currentOrganizationId
+                  ? `/organizations/${currentOrganizationId}`
+                  : '/select-organization'
+              }
               className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-gray-600 hover:bg-gray-50 mb-4"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -55,7 +66,12 @@ export function Sidebar() {
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -74,7 +90,12 @@ export function Sidebar() {
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -93,7 +114,12 @@ export function Sidebar() {
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -108,14 +134,24 @@ export function Sidebar() {
           <>
             {/* Global navigation */}
             <Link
-              href="/projects"
+              href={
+                currentOrganizationId
+                  ? `/organizations/${currentOrganizationId}`
+                  : '/select-organization'
+              }
               className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                pathname.startsWith('/projects') || pathname.startsWith('/organizations')
+                pathname.startsWith('/projects') ||
+                pathname.startsWith('/organizations')
                   ? 'bg-gray-100 text-gray-900'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

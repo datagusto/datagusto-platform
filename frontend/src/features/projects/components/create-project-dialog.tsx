@@ -15,7 +15,6 @@
 
 'use client';
 
-import { useState } from 'react';
 import { useCreateProject } from '../hooks';
 import { CreateProjectForm } from './create-project-form';
 import type { CreateProjectFormData } from '../schemas';

@@ -15,34 +15,37 @@ import uuid
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.guardrail import Guardrail
-from app.models.guardrail import GuardrailAgentAssignment, GuardrailActiveStatus, GuardrailArchive
-from app.repositories.guardrail_evaluation_log_repository import GuardrailEvaluationLogRepository
-from app.services.guardrail_evaluation.condition_evaluator import evaluate_conditions
-from app.services.guardrail_evaluation.action_executor import (
-    execute_block_action,
-    execute_warn_action,
-    execute_modify_action,
-    apply_multiple_modify_actions,
+from app.models.guardrail import (
+    Guardrail,
+    GuardrailActiveStatus,
+    GuardrailAgentAssignment,
+    GuardrailArchive,
 )
-from app.services.guardrail_evaluation.should_proceed_calculator import (
-    calculate_should_proceed_with_configs,
-)
-from app.services.guardrail_evaluation.llm_judge import evaluate_with_llm
-from app.services.guardrail_evaluation.exceptions import (
-    GuardrailEvaluationError,
-    FieldPathResolutionError,
-    ConditionEvaluationError,
+from app.repositories.guardrail_evaluation_log_repository import (
+    GuardrailEvaluationLogRepository,
 )
 from app.schemas.guardrail_evaluation import (
+    ActionResult,
+    EvaluationMetadata,
     GuardrailEvaluationRequest,
     GuardrailEvaluationResponse,
     TriggeredGuardrail,
-    ActionResult,
-    EvaluationMetadata,
+)
+from app.services.guardrail_evaluation.action_executor import (
+    execute_block_action,
+    execute_modify_action,
+    execute_warn_action,
+)
+from app.services.guardrail_evaluation.condition_evaluator import evaluate_conditions
+from app.services.guardrail_evaluation.exceptions import (
+    ConditionEvaluationError,
+    FieldPathResolutionError,
+)
+from app.services.guardrail_evaluation.should_proceed_calculator import (
+    calculate_should_proceed_with_configs,
 )
 
 logger = logging.getLogger(__name__)
@@ -62,10 +65,7 @@ class GuardrailEvaluationService:
         self.log_repo = GuardrailEvaluationLogRepository(db)
 
     async def get_active_guardrails_for_agent(
-        self,
-        agent_id: UUID,
-        timing: str,
-        process_type: str
+        self, agent_id: UUID, timing: str, process_type: str
     ) -> list[Guardrail]:
         """
         Get active guardrails assigned to an agent, filtered by timing and process_type.
@@ -86,8 +86,14 @@ class GuardrailEvaluationService:
         # Query for assigned, active, non-archived guardrails
         stmt = (
             select(Guardrail)
-            .join(GuardrailAgentAssignment, Guardrail.id == GuardrailAgentAssignment.guardrail_id)
-            .join(GuardrailActiveStatus, Guardrail.id == GuardrailActiveStatus.guardrail_id)
+            .join(
+                GuardrailAgentAssignment,
+                Guardrail.id == GuardrailAgentAssignment.guardrail_id,
+            )
+            .join(
+                GuardrailActiveStatus,
+                Guardrail.id == GuardrailActiveStatus.guardrail_id,
+            )
             .outerjoin(GuardrailArchive, Guardrail.id == GuardrailArchive.guardrail_id)
             .where(
                 GuardrailAgentAssignment.agent_id == agent_id,
@@ -121,7 +127,7 @@ class GuardrailEvaluationService:
         agent_id: UUID,
         project_id: UUID,
         organization_id: UUID,
-        request: GuardrailEvaluationRequest
+        request: GuardrailEvaluationRequest,
     ) -> GuardrailEvaluationResponse:
         """
         Evaluate guardrails for a request.
@@ -155,9 +161,7 @@ class GuardrailEvaluationService:
 
         # Get active guardrails
         guardrails = await self.get_active_guardrails_for_agent(
-            agent_id,
-            request.timing.value,
-            request.process_type.value
+            agent_id, request.timing.value, request.process_type.value
         )
 
         triggered_guardrails_list: list[TriggeredGuardrail] = []
@@ -168,16 +172,14 @@ class GuardrailEvaluationService:
             guardrail_definitions[str(guardrail.id)] = guardrail.definition
 
             triggered_result = await self._evaluate_guardrail(
-                guardrail,
-                request.context
+                guardrail, request.context
             )
 
             triggered_guardrails_list.append(triggered_result)
 
         # Calculate should_proceed
         should_proceed = calculate_should_proceed_with_configs(
-            [tg.model_dump() for tg in triggered_guardrails_list],
-            guardrail_definitions
+            [tg.model_dump() for tg in triggered_guardrails_list], guardrail_definitions
         )
 
         # Calculate evaluation time
@@ -185,8 +187,7 @@ class GuardrailEvaluationService:
 
         # Count triggered guardrails
         triggered_count = sum(
-            1 for tg in triggered_guardrails_list
-            if tg.triggered and not tg.error
+            1 for tg in triggered_guardrails_list if tg.triggered and not tg.error
         )
 
         metadata = EvaluationMetadata(
@@ -232,9 +233,7 @@ class GuardrailEvaluationService:
         return response
 
     async def _evaluate_guardrail(
-        self,
-        guardrail: Guardrail,
-        context: dict[str, Any]
+        self, guardrail: Guardrail, context: dict[str, Any]
     ) -> TriggeredGuardrail:
         """
         Evaluate a single guardrail.
@@ -316,7 +315,9 @@ class GuardrailEvaluationService:
 
         except Exception as e:
             # Unexpected errors
-            logger.error(f"Unexpected error evaluating guardrail {guardrail.name}: {str(e)}")
+            logger.error(
+                f"Unexpected error evaluating guardrail {guardrail.name}: {str(e)}"
+            )
             return TriggeredGuardrail(
                 guardrail_id=guardrail.id,
                 guardrail_name=guardrail.name,
@@ -373,23 +374,27 @@ class GuardrailEvaluationService:
                 if tg.triggered and not tg.error
             ],
             "evaluation_result": {
-                "triggered_guardrails": [tg.model_dump() for tg in triggered_guardrails],
+                "triggered_guardrails": [
+                    tg.model_dump() for tg in triggered_guardrails
+                ],
                 "metadata": metadata.model_dump(),
             },
             "evaluation_time_ms": evaluation_time_ms,
         }
 
-        await self.log_repo.create({
-            "request_id": request_id,
-            "agent_id": agent_id,
-            "project_id": project_id,
-            "organization_id": organization_id,
-            "trace_id": trace_id,
-            "timing": timing,
-            "process_type": process_type,
-            "should_proceed": should_proceed,
-            "log_data": log_data,
-        })
+        await self.log_repo.create(
+            {
+                "request_id": request_id,
+                "agent_id": agent_id,
+                "project_id": project_id,
+                "organization_id": organization_id,
+                "trace_id": trace_id,
+                "timing": timing,
+                "process_type": process_type,
+                "should_proceed": should_proceed,
+                "log_data": log_data,
+            }
+        )
 
         await self.db.commit()
         logger.debug(f"Saved evaluation log {request_id}")

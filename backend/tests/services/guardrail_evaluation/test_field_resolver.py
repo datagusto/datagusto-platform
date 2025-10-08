@@ -4,11 +4,11 @@ Tests for field path resolution utilities.
 
 import pytest
 
+from app.services.guardrail_evaluation.exceptions import FieldPathResolutionError
 from app.services.guardrail_evaluation.field_resolver import (
     parse_field_path,
     resolve_field_value,
 )
-from app.services.guardrail_evaluation.exceptions import FieldPathResolutionError
 
 
 class TestParseFieldPath:

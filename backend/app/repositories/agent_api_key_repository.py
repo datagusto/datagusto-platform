@@ -5,11 +5,11 @@ This repository handles operations for the AgentAPIKey model,
 managing API keys with bcrypt hashing and prefix-based lookup.
 """
 
-from typing import List, Optional
 from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, delete
 from uuid import UUID
+
+from sqlalchemy import delete, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.agent import AgentAPIKey
 
@@ -26,7 +26,7 @@ class AgentAPIKeyRepository:
         """
         self.db = db
 
-    async def get_by_id(self, key_id: UUID) -> Optional[AgentAPIKey]:
+    async def get_by_id(self, key_id: UUID) -> AgentAPIKey | None:
         """
         Get API key by ID.
 
@@ -42,7 +42,7 @@ class AgentAPIKeyRepository:
 
     async def get_by_agent_id(
         self, agent_id: UUID, page: int = 1, page_size: int = 20
-    ) -> tuple[List[AgentAPIKey], int]:
+    ) -> tuple[list[AgentAPIKey], int]:
         """
         Get API keys by agent ID with pagination.
 
@@ -55,8 +55,10 @@ class AgentAPIKeyRepository:
             Tuple of (API keys list, total count)
         """
         # Get total count
-        count_stmt = select(func.count()).select_from(AgentAPIKey).where(
-            AgentAPIKey.agent_id == agent_id
+        count_stmt = (
+            select(func.count())
+            .select_from(AgentAPIKey)
+            .where(AgentAPIKey.agent_id == agent_id)
         )
         total_result = await self.db.execute(count_stmt)
         total = total_result.scalar_one()
@@ -74,7 +76,7 @@ class AgentAPIKeyRepository:
 
         return list(keys), total
 
-    async def get_by_key_prefix(self, key_prefix: str) -> Optional[AgentAPIKey]:
+    async def get_by_key_prefix(self, key_prefix: str) -> AgentAPIKey | None:
         """
         Get API key by prefix for authentication.
 
@@ -94,8 +96,8 @@ class AgentAPIKeyRepository:
         key_prefix: str,
         key_hash: str,
         created_by: UUID,
-        name: Optional[str] = None,
-        expires_at: Optional[datetime] = None,
+        name: str | None = None,
+        expires_at: datetime | None = None,
     ) -> AgentAPIKey:
         """
         Create a new API key.
@@ -185,8 +187,10 @@ class AgentAPIKeyRepository:
         Returns:
             Number of API keys
         """
-        stmt = select(func.count()).select_from(AgentAPIKey).where(
-            AgentAPIKey.agent_id == agent_id
+        stmt = (
+            select(func.count())
+            .select_from(AgentAPIKey)
+            .where(AgentAPIKey.agent_id == agent_id)
         )
         result = await self.db.execute(stmt)
         return result.scalar_one()

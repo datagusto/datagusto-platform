@@ -5,10 +5,10 @@ This repository handles operations for the Guardrail model and its related
 tables (assignments, active status, archive).
 """
 
-from typing import Optional, List
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 from uuid import UUID
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.guardrail import (
     Guardrail,
@@ -35,9 +35,9 @@ class GuardrailRepository(BaseRepository[Guardrail]):
         project_id: UUID,
         page: int = 1,
         page_size: int = 20,
-        is_active: Optional[bool] = None,
-        is_archived: Optional[bool] = None,
-    ) -> tuple[List[Guardrail], int]:
+        is_active: bool | None = None,
+        is_archived: bool | None = None,
+    ) -> tuple[list[Guardrail], int]:
         """
         Get guardrails by project with pagination and filtering.
 
@@ -142,7 +142,7 @@ class GuardrailRepository(BaseRepository[Guardrail]):
 
     # Archive Methods
     async def archive(
-        self, guardrail_id: UUID, archived_by: UUID, reason: Optional[str] = None
+        self, guardrail_id: UUID, archived_by: UUID, reason: str | None = None
     ) -> GuardrailArchive:
         """
         Archive guardrail (create archive record).

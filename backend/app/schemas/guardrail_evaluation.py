@@ -5,7 +5,7 @@ This module defines all Pydantic models for Guardrail Evaluation API operations.
 """
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -77,7 +77,7 @@ class GuardrailEvaluationRequest(BaseModel):
         - context.output is required when timing=on_end
     """
 
-    trace_id: Optional[str] = Field(
+    trace_id: str | None = Field(
         None,
         description="Optional trace ID from external tracing system",
         examples=["langfuse_trace_abc123"],
@@ -234,7 +234,7 @@ class TriggeredGuardrail(BaseModel):
     guardrail_name: str = Field(..., description="Guardrail name")
     triggered: bool = Field(..., description="Whether guardrail was triggered")
     error: bool = Field(False, description="Whether error occurred")
-    error_message: Optional[str] = Field(None, description="Error message if any")
+    error_message: str | None = Field(None, description="Error message if any")
     matched_conditions: list[int] = Field(
         default_factory=list, description="Indices of matched conditions"
     )

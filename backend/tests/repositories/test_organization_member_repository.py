@@ -5,25 +5,25 @@ Tests verify membership database operations using PostgreSQL test database
 with transaction rollback for isolation.
 """
 
-import pytest
 from uuid import UUID, uuid4
+
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.repositories.organization_admin_repository import OrganizationAdminRepository
 from app.repositories.organization_member_repository import (
     OrganizationMemberRepository,
 )
 from app.repositories.organization_owner_repository import OrganizationOwnerRepository
-from app.repositories.organization_admin_repository import OrganizationAdminRepository
 from tests.repositories.conftest import (
+    seed_test_membership,
     seed_test_organization,
     seed_test_user,
-    seed_test_membership,
 )
 from tests.repositories.utils import (
     assert_relationship_exists,
     count_users_in_organization,
 )
-
 
 # ============================================================================
 # Test: OrganizationMemberRepository - create_membership

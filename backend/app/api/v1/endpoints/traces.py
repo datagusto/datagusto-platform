@@ -5,26 +5,27 @@ This module provides endpoints for trace and observation management,
 supporting both JWT (user) and API Key (agent) authentication.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Any, Optional
-from uuid import UUID
 from datetime import datetime
+from typing import Any
+from uuid import UUID
 
-from app.core.database import get_async_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.auth import get_current_user_or_agent
+from app.core.database import get_async_db
+from app.repositories.project_member_repository import ProjectMemberRepository
 from app.schemas.trace import (
-    TraceCreate,
-    TraceUpdate,
-    TraceResponse,
-    TraceListResponse,
     ObservationCreate,
-    ObservationUpdate,
     ObservationResponse,
     ObservationTreeResponse,
+    ObservationUpdate,
+    TraceCreate,
+    TraceListResponse,
+    TraceResponse,
+    TraceUpdate,
 )
 from app.services.trace_service import TraceService
-from app.repositories.project_member_repository import ProjectMemberRepository
 
 router = APIRouter()
 
@@ -72,9 +73,11 @@ async def list_traces(
     agent_id: UUID,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    status: Optional[str] = Query(None, pattern="^(pending|running|completed|failed|error)$"),
-    start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None,
+    status: str | None = Query(
+        None, pattern="^(pending|running|completed|failed|error)$"
+    ),
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
     current_auth: dict = Depends(get_current_user_or_agent),
     db: AsyncSession = Depends(get_async_db),
 ) -> Any:
@@ -104,6 +107,7 @@ async def list_traces(
     if current_auth["type"] == "user":
         # User must be project member
         from app.services.agent_service import AgentService
+
         agent_service = AgentService(db)
         agent = await agent_service.get_agent(agent_id)
 
@@ -175,6 +179,7 @@ async def create_trace(
     elif current_auth["type"] == "user":
         # User must be project member
         from app.services.agent_service import AgentService
+
         agent_service = AgentService(db)
         agent = await agent_service.get_agent(agent_id)
 
@@ -265,7 +270,9 @@ async def list_observations(
     trace_id: UUID,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    type: Optional[str] = Query(None, pattern="^(llm|tool|retriever|agent|embedding|reranker|custom)$"),
+    type: str | None = Query(
+        None, pattern="^(llm|tool|retriever|agent|embedding|reranker|custom)$"
+    ),
     current_auth: dict = Depends(get_current_user_or_agent),
     db: AsyncSession = Depends(get_async_db),
 ) -> Any:
@@ -298,7 +305,9 @@ async def list_observations(
     )
 
 
-@router.get("/{trace_id}/observations/tree", response_model=list[ObservationTreeResponse])
+@router.get(
+    "/{trace_id}/observations/tree", response_model=list[ObservationTreeResponse]
+)
 async def get_observation_tree(
     trace_id: UUID,
     current_auth: dict = Depends(get_current_user_or_agent),

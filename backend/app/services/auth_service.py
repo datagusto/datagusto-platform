@@ -6,29 +6,30 @@ data model with separate tables for user identity, authentication,
 profile, and status.
 """
 
-from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
 from datetime import timedelta
+from typing import Any
 from uuid import uuid4
-from typing import Dict, Any
 
-from app.schemas.user import UserCreate
-from app.repositories.user_repository import UserRepository
-from app.repositories.user_auth_repository import UserAuthRepository
-from app.repositories.user_profile_repository import UserProfileRepository
-from app.repositories.user_status_repository import UserStatusRepository
-from app.repositories.organization_repository import OrganizationRepository
-from app.repositories.organization_owner_repository import OrganizationOwnerRepository
-from app.repositories.organization_member_repository import OrganizationMemberRepository
+from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.security import (
-    get_password_hash,
-    verify_password,
-    create_access_token,
-    create_refresh_token,
     ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
+    create_access_token,
+    create_refresh_token,
+    get_password_hash,
+    verify_password,
 )
+from app.repositories.organization_member_repository import OrganizationMemberRepository
+from app.repositories.organization_owner_repository import OrganizationOwnerRepository
+from app.repositories.organization_repository import OrganizationRepository
+from app.repositories.user_auth_repository import UserAuthRepository
+from app.repositories.user_profile_repository import UserProfileRepository
+from app.repositories.user_repository import UserRepository
+from app.repositories.user_status_repository import UserStatusRepository
+from app.schemas.user import UserCreate
 
 
 class AuthService:
@@ -50,7 +51,7 @@ class AuthService:
         self.owner_repo = OrganizationOwnerRepository(db)
         self.member_repo = OrganizationMemberRepository(db)
 
-    async def register_user(self, user_in: UserCreate) -> Dict[str, Any]:
+    async def register_user(self, user_in: UserCreate) -> dict[str, Any]:
         """
         Register a new user with their own organization.
 
@@ -157,7 +158,7 @@ class AuthService:
                 detail=f"Registration failed: {str(e)}",
             )
 
-    async def login_user(self, email: str, password: str) -> Dict[str, Any]:
+    async def login_user(self, email: str, password: str) -> dict[str, Any]:
         """
         Authenticate user with email and password.
 
@@ -185,14 +186,6 @@ class AuthService:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="User account is not active",
-            )
-
-        # Check if user is suspended
-        if await self.status_repo.is_suspended(user.id):
-            suspension = await self.status_repo.get_active_suspension(user.id)
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"User account is suspended: {suspension.reason}",
             )
 
         # Check if user is archived

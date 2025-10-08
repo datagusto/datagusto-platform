@@ -6,11 +6,11 @@ architecture. It handles setting and extracting organization IDs for Row Level
 Security (RLS) policies and request isolation.
 """
 
-from typing import Optional
 from uuid import UUID
+
 from fastapi import HTTPException, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_access_token
 
@@ -53,7 +53,7 @@ async def set_organization_context(db: AsyncSession, organization_id: UUID) -> N
         )
 
 
-def extract_organization_id_from_token(token: str) -> Optional[UUID]:
+def extract_organization_id_from_token(token: str) -> UUID | None:
     """
     Extract organization ID from JWT token.
 
@@ -100,7 +100,7 @@ def extract_organization_id_from_token(token: str) -> Optional[UUID]:
         )
 
 
-def extract_organization_id_from_header(request: Request) -> Optional[UUID]:
+def extract_organization_id_from_header(request: Request) -> UUID | None:
     """
     Extract organization ID from HTTP header.
 
@@ -143,9 +143,7 @@ def extract_organization_id_from_header(request: Request) -> Optional[UUID]:
         )
 
 
-def extract_organization_id(
-    request: Request, token: Optional[str] = None
-) -> Optional[UUID]:
+def extract_organization_id(request: Request, token: str | None = None) -> UUID | None:
     """
     Extract organization ID from request using multiple strategies.
 
@@ -189,7 +187,7 @@ def extract_organization_id(
     return None
 
 
-def require_organization_context(organization_id: Optional[UUID]) -> UUID:
+def require_organization_context(organization_id: UUID | None) -> UUID:
     """
     Ensure organization context is present, raise exception if not.
 

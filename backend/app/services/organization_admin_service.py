@@ -5,17 +5,18 @@ This service handles organization admin privilege operations including
 granting/revoking admin rights and listing admins.
 """
 
-from typing import List, Dict, Any
+from typing import Any
 from uuid import UUID
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.organization_admin_repository import OrganizationAdminRepository
-from app.repositories.organization_repository import OrganizationRepository
-from app.repositories.user_repository import UserRepository
 from app.repositories.organization_member_repository import (
     OrganizationMemberRepository,
 )
+from app.repositories.organization_repository import OrganizationRepository
+from app.repositories.user_repository import UserRepository
 
 
 class OrganizationAdminService:
@@ -49,7 +50,7 @@ class OrganizationAdminService:
 
     async def grant_admin(
         self, organization_id: UUID, user_id: UUID, granted_by: UUID
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Grant admin privileges to a user.
 
@@ -142,7 +143,7 @@ class OrganizationAdminService:
 
     async def list_admins(
         self, organization_id: UUID, limit: int = 100, offset: int = 0
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         List all admins of an organization.
 

@@ -5,18 +5,18 @@ This repository handles operations for the Organization model and its related
 tables (status, members, admins, owners).
 """
 
-from typing import Optional, List
 from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import joinedload
 from uuid import UUID
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.models.organization import (
     Organization,
     OrganizationActiveStatus,
-    OrganizationSuspension,
     OrganizationArchive,
+    OrganizationSuspension,
 )
 from app.repositories.base_repository import BaseRepository
 
@@ -35,7 +35,7 @@ class OrganizationRepository(BaseRepository[Organization]):
 
     async def get_by_id_with_relations(
         self, organization_id: UUID
-    ) -> Optional[Organization]:
+    ) -> Organization | None:
         """
         Get organization by ID with all related data.
 
@@ -119,7 +119,7 @@ class OrganizationRepository(BaseRepository[Organization]):
         organization_id: UUID,
         reason: str,
         suspended_by: UUID,
-        suspended_until: Optional[datetime] = None,
+        suspended_until: datetime | None = None,
     ) -> OrganizationSuspension:
         """
         Suspend organization.
@@ -145,7 +145,7 @@ class OrganizationRepository(BaseRepository[Organization]):
 
     async def lift_suspension(
         self, suspension_id: int, lifted_by: UUID
-    ) -> Optional[OrganizationSuspension]:
+    ) -> OrganizationSuspension | None:
         """
         Lift (remove) a suspension by deleting the suspension record.
 
@@ -172,7 +172,7 @@ class OrganizationRepository(BaseRepository[Organization]):
 
     async def get_active_suspension(
         self, organization_id: UUID
-    ) -> Optional[OrganizationSuspension]:
+    ) -> OrganizationSuspension | None:
         """
         Get organization's most recent suspension (if any).
 
@@ -268,7 +268,7 @@ class OrganizationRepository(BaseRepository[Organization]):
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none() is not None
 
-    async def get_by_name(self, name: str) -> Optional[Organization]:
+    async def get_by_name(self, name: str) -> Organization | None:
         """
         Get organization by name.
 
@@ -287,7 +287,7 @@ class OrganizationRepository(BaseRepository[Organization]):
 
     async def list_active(
         self, limit: int = 100, offset: int = 0
-    ) -> List[Organization]:
+    ) -> list[Organization]:
         """
         List all active organizations.
 

@@ -4,12 +4,15 @@ PermissionService unit tests.
 Tests permission checking logic with mocked repositories.
 """
 
-import pytest
 from uuid import uuid4
+
+import pytest
 
 
 @pytest.mark.asyncio
-async def test_is_owner_returns_true_for_owner(permission_service, mock_organization_owner_repository):
+async def test_is_owner_returns_true_for_owner(
+    permission_service, mock_organization_owner_repository
+):
     """Test is_owner check returns True for organization owner."""
     # Arrange
     org_id = uuid4()
@@ -25,8 +28,11 @@ async def test_is_owner_returns_true_for_owner(permission_service, mock_organiza
 
 
 @pytest.mark.asyncio
-async def test_is_admin_or_owner_returns_true_for_admin(permission_service, mock_organization_admin_repository,
-                                                          mock_organization_owner_repository):
+async def test_is_admin_or_owner_returns_true_for_admin(
+    permission_service,
+    mock_organization_admin_repository,
+    mock_organization_owner_repository,
+):
     """Test is_admin_or_owner returns True for admin."""
     # Arrange
     org_id = uuid4()
@@ -42,9 +48,12 @@ async def test_is_admin_or_owner_returns_true_for_admin(permission_service, mock
 
 
 @pytest.mark.asyncio
-async def test_is_member_or_above_returns_false_for_non_member(permission_service, mock_organization_member_repository,
-                                                                 mock_organization_owner_repository,
-                                                                 mock_organization_admin_repository):
+async def test_is_member_or_above_returns_false_for_non_member(
+    permission_service,
+    mock_organization_member_repository,
+    mock_organization_owner_repository,
+    mock_organization_admin_repository,
+):
     """Test is_member_or_above returns False for non-member."""
     # Arrange
     org_id = uuid4()

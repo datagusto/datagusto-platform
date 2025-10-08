@@ -5,16 +5,17 @@ This service handles trace-related operations including CRUD operations,
 observation management, and hierarchical tree building.
 """
 
-from typing import Optional, Dict, Any, List
-from uuid import UUID
 from datetime import datetime
+from typing import Any
+from uuid import UUID
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.trace_repository import TraceRepository
-from app.repositories.observation_repository import ObservationRepository
 from app.repositories.agent_repository import AgentRepository
+from app.repositories.observation_repository import ObservationRepository
 from app.repositories.project_member_repository import ProjectMemberRepository
+from app.repositories.trace_repository import TraceRepository
 
 
 class TraceService:
@@ -33,7 +34,7 @@ class TraceService:
         self.agent_repo = AgentRepository(db)
         self.member_repo = ProjectMemberRepository(db)
 
-    async def get_trace(self, trace_id: UUID) -> Dict[str, Any]:
+    async def get_trace(self, trace_id: UUID) -> dict[str, Any]:
         """
         Get trace by ID.
 
@@ -80,10 +81,10 @@ class TraceService:
         agent_id: UUID,
         page: int = 1,
         page_size: int = 20,
-        status: Optional[str] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-    ) -> Dict[str, Any]:
+        status: str | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+    ) -> dict[str, Any]:
         """
         List traces for an agent with pagination and filtering.
 
@@ -113,20 +114,28 @@ class TraceService:
             duration_seconds = await self.trace_repo.calculate_duration(trace.id)
             duration_ms = int(duration_seconds * 1000) if duration_seconds else None
 
-            items.append({
-                "id": str(trace.id),
-                "agent_id": str(trace.agent_id),
-                "project_id": str(trace.project_id),
-                "organization_id": str(trace.organization_id),
-                "status": trace.status,
-                "started_at": trace.started_at.isoformat() if trace.started_at else None,
-                "ended_at": trace.ended_at.isoformat() if trace.ended_at else None,
-                "metadata": trace.trace_metadata,
-                "created_at": trace.created_at.isoformat() if trace.created_at else None,
-                "updated_at": trace.updated_at.isoformat() if trace.updated_at else None,
-                "observation_count": observation_count,
-                "duration_ms": duration_ms,
-            })
+            items.append(
+                {
+                    "id": str(trace.id),
+                    "agent_id": str(trace.agent_id),
+                    "project_id": str(trace.project_id),
+                    "organization_id": str(trace.organization_id),
+                    "status": trace.status,
+                    "started_at": trace.started_at.isoformat()
+                    if trace.started_at
+                    else None,
+                    "ended_at": trace.ended_at.isoformat() if trace.ended_at else None,
+                    "metadata": trace.trace_metadata,
+                    "created_at": trace.created_at.isoformat()
+                    if trace.created_at
+                    else None,
+                    "updated_at": trace.updated_at.isoformat()
+                    if trace.updated_at
+                    else None,
+                    "observation_count": observation_count,
+                    "duration_ms": duration_ms,
+                }
+            )
 
         return {
             "items": items,
@@ -139,9 +148,9 @@ class TraceService:
         self,
         agent_id: UUID,
         status: str,
-        trace_metadata: Dict[str, Any],
-        started_at: Optional[datetime] = None,
-    ) -> Dict[str, Any]:
+        trace_metadata: dict[str, Any],
+        started_at: datetime | None = None,
+    ) -> dict[str, Any]:
         """
         Create a new trace.
 
@@ -192,10 +201,10 @@ class TraceService:
     async def update_trace(
         self,
         trace_id: UUID,
-        status: Optional[str] = None,
-        ended_at: Optional[datetime] = None,
-        trace_metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        status: str | None = None,
+        ended_at: datetime | None = None,
+        trace_metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Update trace information.
 
@@ -250,7 +259,7 @@ class TraceService:
 
     # Observation methods
 
-    async def get_observation(self, observation_id: UUID) -> Dict[str, Any]:
+    async def get_observation(self, observation_id: UUID) -> dict[str, Any]:
         """
         Get observation by ID.
 
@@ -274,21 +283,33 @@ class TraceService:
         child_count = await self.observation_repo.get_child_count(observation.id)
 
         # Calculate duration
-        duration_seconds = await self.observation_repo.calculate_duration(observation.id)
+        duration_seconds = await self.observation_repo.calculate_duration(
+            observation.id
+        )
         duration_ms = int(duration_seconds * 1000) if duration_seconds else None
 
         return {
             "id": str(observation.id),
             "trace_id": str(observation.trace_id),
-            "parent_observation_id": str(observation.parent_observation_id) if observation.parent_observation_id else None,
+            "parent_observation_id": str(observation.parent_observation_id)
+            if observation.parent_observation_id
+            else None,
             "type": observation.type,
             "name": observation.name,
             "status": observation.status,
-            "started_at": observation.started_at.isoformat() if observation.started_at else None,
-            "ended_at": observation.ended_at.isoformat() if observation.ended_at else None,
+            "started_at": observation.started_at.isoformat()
+            if observation.started_at
+            else None,
+            "ended_at": observation.ended_at.isoformat()
+            if observation.ended_at
+            else None,
             "metadata": observation.observation_metadata,
-            "created_at": observation.created_at.isoformat() if observation.created_at else None,
-            "updated_at": observation.updated_at.isoformat() if observation.updated_at else None,
+            "created_at": observation.created_at.isoformat()
+            if observation.created_at
+            else None,
+            "updated_at": observation.updated_at.isoformat()
+            if observation.updated_at
+            else None,
             "child_count": child_count,
             "duration_ms": duration_ms,
         }
@@ -298,8 +319,8 @@ class TraceService:
         trace_id: UUID,
         page: int = 1,
         page_size: int = 20,
-        observation_type: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        observation_type: str | None = None,
+    ) -> dict[str, Any]:
         """
         List observations for a trace (flat list).
 
@@ -322,24 +343,38 @@ class TraceService:
         items = []
         for observation in observations:
             child_count = await self.observation_repo.get_child_count(observation.id)
-            duration_seconds = await self.observation_repo.calculate_duration(observation.id)
+            duration_seconds = await self.observation_repo.calculate_duration(
+                observation.id
+            )
             duration_ms = int(duration_seconds * 1000) if duration_seconds else None
 
-            items.append({
-                "id": str(observation.id),
-                "trace_id": str(observation.trace_id),
-                "parent_observation_id": str(observation.parent_observation_id) if observation.parent_observation_id else None,
-                "type": observation.type,
-                "name": observation.name,
-                "status": observation.status,
-                "started_at": observation.started_at.isoformat() if observation.started_at else None,
-                "ended_at": observation.ended_at.isoformat() if observation.ended_at else None,
-                "metadata": observation.observation_metadata,
-                "created_at": observation.created_at.isoformat() if observation.created_at else None,
-                "updated_at": observation.updated_at.isoformat() if observation.updated_at else None,
-                "child_count": child_count,
-                "duration_ms": duration_ms,
-            })
+            items.append(
+                {
+                    "id": str(observation.id),
+                    "trace_id": str(observation.trace_id),
+                    "parent_observation_id": str(observation.parent_observation_id)
+                    if observation.parent_observation_id
+                    else None,
+                    "type": observation.type,
+                    "name": observation.name,
+                    "status": observation.status,
+                    "started_at": observation.started_at.isoformat()
+                    if observation.started_at
+                    else None,
+                    "ended_at": observation.ended_at.isoformat()
+                    if observation.ended_at
+                    else None,
+                    "metadata": observation.observation_metadata,
+                    "created_at": observation.created_at.isoformat()
+                    if observation.created_at
+                    else None,
+                    "updated_at": observation.updated_at.isoformat()
+                    if observation.updated_at
+                    else None,
+                    "child_count": child_count,
+                    "duration_ms": duration_ms,
+                }
+            )
 
         return {
             "items": items,
@@ -348,7 +383,7 @@ class TraceService:
             "page_size": page_size,
         }
 
-    async def get_observation_tree(self, trace_id: UUID) -> List[Dict[str, Any]]:
+    async def get_observation_tree(self, trace_id: UUID) -> list[dict[str, Any]]:
         """
         Get observation tree for a trace (hierarchical structure).
 
@@ -371,7 +406,9 @@ class TraceService:
             obs_map[str(obs.id)] = {
                 "id": str(obs.id),
                 "trace_id": str(obs.trace_id),
-                "parent_observation_id": str(obs.parent_observation_id) if obs.parent_observation_id else None,
+                "parent_observation_id": str(obs.parent_observation_id)
+                if obs.parent_observation_id
+                else None,
                 "type": obs.type,
                 "name": obs.name,
                 "status": obs.status,
@@ -387,7 +424,7 @@ class TraceService:
 
         # Build tree structure
         roots = []
-        for obs_id, obs_data in obs_map.items():
+        for _, obs_data in obs_map.items():
             parent_id = obs_data["parent_observation_id"]
             if parent_id is None:
                 roots.append(obs_data)
@@ -403,10 +440,10 @@ class TraceService:
         observation_type: str,
         name: str,
         status: str,
-        observation_metadata: Dict[str, Any],
-        parent_observation_id: Optional[UUID] = None,
-        started_at: Optional[datetime] = None,
-    ) -> Dict[str, Any]:
+        observation_metadata: dict[str, Any],
+        parent_observation_id: UUID | None = None,
+        started_at: datetime | None = None,
+    ) -> dict[str, Any]:
         """
         Create a new observation.
 
@@ -476,10 +513,10 @@ class TraceService:
     async def update_observation(
         self,
         observation_id: UUID,
-        status: Optional[str] = None,
-        ended_at: Optional[datetime] = None,
-        observation_metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        status: str | None = None,
+        ended_at: datetime | None = None,
+        observation_metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Update observation information.
 
@@ -512,7 +549,9 @@ class TraceService:
             if observation_metadata is not None:
                 update_data["observation_metadata"] = observation_metadata
 
-            updated_observation = await self.observation_repo.update(observation_id, update_data)
+            updated_observation = await self.observation_repo.update(
+                observation_id, update_data
+            )
             if not updated_observation:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,

@@ -16,8 +16,8 @@ import re
 from enum import Enum
 from typing import Any
 
-from app.services.guardrail_evaluation.field_resolver import resolve_field_value
 from app.services.guardrail_evaluation.exceptions import ConditionEvaluationError
+from app.services.guardrail_evaluation.field_resolver import resolve_field_value
 
 
 class Operator(str, Enum):
@@ -66,9 +66,7 @@ def evaluate_contains(field_value: Any, target: str) -> bool:
         target_str = str(target)
         return target_str in field_str
     except Exception as e:
-        raise ConditionEvaluationError(
-            f"Failed to evaluate 'contains': {str(e)}"
-        )
+        raise ConditionEvaluationError(f"Failed to evaluate 'contains': {str(e)}")
 
 
 def evaluate_equals(field_value: Any, target: Any) -> bool:
@@ -104,13 +102,9 @@ def evaluate_regex(field_value: Any, pattern: str) -> bool:
         compiled_pattern = re.compile(pattern)
         return compiled_pattern.search(field_str) is not None
     except re.error as e:
-        raise ConditionEvaluationError(
-            f"Invalid regex pattern '{pattern}': {str(e)}"
-        )
+        raise ConditionEvaluationError(f"Invalid regex pattern '{pattern}': {str(e)}")
     except Exception as e:
-        raise ConditionEvaluationError(
-            f"Failed to evaluate regex: {str(e)}"
-        )
+        raise ConditionEvaluationError(f"Failed to evaluate regex: {str(e)}")
 
 
 # Numeric comparison operators
@@ -127,9 +121,7 @@ def _to_number(value: Any) -> float | int:
                 return float(value)
             return int(value)
         except ValueError:
-            raise ConditionEvaluationError(
-                f"Cannot convert '{value}' to number"
-            )
+            raise ConditionEvaluationError(f"Cannot convert '{value}' to number")
     raise ConditionEvaluationError(
         f"Cannot convert type {type(value).__name__} to number"
     )
@@ -276,9 +268,7 @@ def evaluate_condition(context: dict[str, Any], condition: dict[str, Any]) -> bo
         # Get evaluation function for operator
         eval_func = OPERATOR_MAP.get(operator)
         if not eval_func:
-            raise ConditionEvaluationError(
-                f"Unsupported operator: {operator}"
-            )
+            raise ConditionEvaluationError(f"Unsupported operator: {operator}")
 
         # Evaluate condition
         return eval_func(field_value, target_value)
@@ -292,9 +282,7 @@ def evaluate_condition(context: dict[str, Any], condition: dict[str, Any]) -> bo
 
 
 def evaluate_conditions(
-    context: dict[str, Any],
-    conditions: list[dict[str, Any]],
-    logic: str
+    context: dict[str, Any], conditions: list[dict[str, Any]], logic: str
 ) -> tuple[bool, list[int]]:
     """
     Evaluate multiple conditions with AND/OR logic.

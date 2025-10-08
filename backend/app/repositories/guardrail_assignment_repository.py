@@ -5,10 +5,10 @@ This repository handles operations for the GuardrailAgentAssignment model,
 managing the N:M relationship between guardrails and agents.
 """
 
-from typing import List
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func
 from uuid import UUID
+
+from sqlalchemy import delete, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.guardrail import GuardrailAgentAssignment
 
@@ -27,7 +27,7 @@ class GuardrailAssignmentRepository:
 
     async def get_by_guardrail_id(
         self, guardrail_id: UUID, page: int = 1, page_size: int = 20
-    ) -> tuple[List[GuardrailAgentAssignment], int]:
+    ) -> tuple[list[GuardrailAgentAssignment], int]:
         """
         Get assignments by guardrail ID with pagination.
 
@@ -40,8 +40,10 @@ class GuardrailAssignmentRepository:
             Tuple of (assignments list, total count)
         """
         # Get total count
-        count_stmt = select(func.count()).select_from(GuardrailAgentAssignment).where(
-            GuardrailAgentAssignment.guardrail_id == guardrail_id
+        count_stmt = (
+            select(func.count())
+            .select_from(GuardrailAgentAssignment)
+            .where(GuardrailAgentAssignment.guardrail_id == guardrail_id)
         )
         total_result = await self.db.execute(count_stmt)
         total = total_result.scalar_one()
@@ -61,7 +63,7 @@ class GuardrailAssignmentRepository:
 
     async def get_by_agent_id(
         self, agent_id: UUID, page: int = 1, page_size: int = 20
-    ) -> tuple[List[GuardrailAgentAssignment], int]:
+    ) -> tuple[list[GuardrailAgentAssignment], int]:
         """
         Get assignments by agent ID with pagination.
 
@@ -74,8 +76,10 @@ class GuardrailAssignmentRepository:
             Tuple of (assignments list, total count)
         """
         # Get total count
-        count_stmt = select(func.count()).select_from(GuardrailAgentAssignment).where(
-            GuardrailAgentAssignment.agent_id == agent_id
+        count_stmt = (
+            select(func.count())
+            .select_from(GuardrailAgentAssignment)
+            .where(GuardrailAgentAssignment.agent_id == agent_id)
         )
         total_result = await self.db.execute(count_stmt)
         total = total_result.scalar_one()
@@ -168,8 +172,10 @@ class GuardrailAssignmentRepository:
         Returns:
             Number of assigned agents
         """
-        stmt = select(func.count()).select_from(GuardrailAgentAssignment).where(
-            GuardrailAgentAssignment.guardrail_id == guardrail_id
+        stmt = (
+            select(func.count())
+            .select_from(GuardrailAgentAssignment)
+            .where(GuardrailAgentAssignment.guardrail_id == guardrail_id)
         )
         result = await self.db.execute(stmt)
         return result.scalar_one()

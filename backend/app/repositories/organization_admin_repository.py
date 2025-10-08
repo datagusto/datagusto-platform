@@ -4,10 +4,10 @@ Organization admin repository for database operations.
 This repository handles admin privilege relationships within organizations.
 """
 
-from typing import List
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 from uuid import UUID
+
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.organization import OrganizationAdmin
 from app.models.user import User
@@ -100,7 +100,7 @@ class OrganizationAdminRepository(BaseRepository[OrganizationAdmin]):
 
     async def list_admins(
         self, organization_id: UUID, limit: int = 100, offset: int = 0
-    ) -> List[User]:
+    ) -> list[User]:
         """
         List all admins of an organization.
 

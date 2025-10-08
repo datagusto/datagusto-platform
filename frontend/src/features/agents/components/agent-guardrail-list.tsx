@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { get } from '@/shared/lib/api-client';
 import type { Guardrail } from '@/features/guardrails/types';
 import { AssignGuardrailDialog } from './assign-guardrail-dialog';
@@ -40,7 +40,10 @@ interface GuardrailListResponse {
  * @description Fetches and displays guardrails assigned to an agent.
  * Provides assign and unassign functionality.
  */
-export function AgentGuardrailList({ agentId, projectId }: AgentGuardrailListProps) {
+export function AgentGuardrailList({
+  agentId,
+  projectId,
+}: AgentGuardrailListProps) {
   const [guardrails, setGuardrails] = useState<Guardrail[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +52,7 @@ export function AgentGuardrailList({ agentId, projectId }: AgentGuardrailListPro
   const assignMutation = useAssignGuardrail();
   const unassignMutation = useUnassignGuardrail();
 
-  const fetchGuardrails = async () => {
+  const fetchGuardrails = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -69,7 +72,7 @@ export function AgentGuardrailList({ agentId, projectId }: AgentGuardrailListPro
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [agentId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -85,7 +88,7 @@ export function AgentGuardrailList({ agentId, projectId }: AgentGuardrailListPro
     return () => {
       isMounted = false;
     };
-  }, [agentId]);
+  }, [agentId, fetchGuardrails]);
 
   const handleAssign = async (guardrailId: string) => {
     await assignMutation.mutateAsync({ guardrailId, agentId });
