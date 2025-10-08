@@ -41,6 +41,26 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-datagusto}
+
+      # JWT configuration (required by config.py)
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_REFRESH_SECRET_KEY: ${JWT_REFRESH_SECRET_KEY}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: ${JWT_REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      ALGORITHM: ${ALGORITHM:-HS256}
+
+      # LLM configuration (optional)
+      LLM_PROVIDER: ${LLM_PROVIDER:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_ENDPOINT: ${LLM_ENDPOINT:-}
+
+      # Application configuration
+      PROJECT_NAME: ${PROJECT_NAME:-DataGusto Platform API}
+      API_V1_STR: ${API_V1_STR:-/api}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      ENABLE_REGISTRATION: ${ENABLE_REGISTRATION:-true}
+      DEBUG: ${DEBUG:-false}
     networks:
       - datagusto-network
 
@@ -113,7 +133,6 @@ services:
 
 volumes:
   postgres_data:
-    driver: local
 
 networks:
   datagusto-network:
