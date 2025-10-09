@@ -203,7 +203,7 @@ class GuardrailEvaluationService:
             metadata=metadata,
         )
 
-        # Save evaluation log (async, don't await to avoid slowing response)
+        # Save evaluation log
         try:
             await self.save_evaluation_log(
                 request_id=request_id,
@@ -221,8 +221,9 @@ class GuardrailEvaluationService:
                 evaluation_time_ms=evaluation_time_ms,
                 evaluated_guardrail_ids=[str(g.id) for g in guardrails],
             )
+            logger.debug(f"Successfully saved evaluation log {request_id}")
         except Exception as e:
-            logger.error(f"Failed to save evaluation log: {str(e)}")
+            logger.error(f"Failed to save evaluation log: {str(e)}", exc_info=True)
             # Don't fail the request if logging fails
 
         logger.info(
@@ -375,9 +376,9 @@ class GuardrailEvaluationService:
             ],
             "evaluation_result": {
                 "triggered_guardrails": [
-                    tg.model_dump() for tg in triggered_guardrails
+                    tg.model_dump(mode='json') for tg in triggered_guardrails
                 ],
-                "metadata": metadata.model_dump(),
+                "metadata": metadata.model_dump(mode='json'),
             },
             "evaluation_time_ms": evaluation_time_ms,
         }

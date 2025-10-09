@@ -141,10 +141,13 @@ def calculate_should_proceed_with_configs(
             continue
 
         guardrail_id = guardrail.get("guardrail_id")
-        if guardrail_id and guardrail_id in guardrail_definitions:
-            definition = guardrail_definitions[guardrail_id]
-            actions = definition.get("actions", [])
-            all_action_configs.extend(actions)
+        if guardrail_id:
+            # Convert UUID to string for dictionary lookup
+            guardrail_id_str = str(guardrail_id)
+            if guardrail_id_str in guardrail_definitions:
+                definition = guardrail_definitions[guardrail_id_str]
+                actions = definition.get("actions", [])
+                all_action_configs.extend(actions)
 
     if not all_action_configs:
         return True

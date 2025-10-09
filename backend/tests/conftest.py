@@ -424,6 +424,7 @@ async def _cleanup_test_database(engine):
 
     async with engine.connect() as connection:
         # Truncate all tables in reverse order of dependencies
+        await connection.execute(text("TRUNCATE TABLE guardrail_evaluation_logs CASCADE"))
         await connection.execute(text("TRUNCATE TABLE user_archives CASCADE"))
         await connection.execute(
             text("TRUNCATE TABLE organization_suspensions CASCADE")
@@ -474,10 +475,7 @@ async def integration_client(test_db_setup, test_db_engine):
     # Override get_async_db to use test database
     async def override_get_async_db():
         async with TestAsyncSessionLocal() as session:
-            try:
-                yield session
-            finally:
-                await session.close()
+            yield session
 
     app.dependency_overrides[get_async_db] = override_get_async_db
 
