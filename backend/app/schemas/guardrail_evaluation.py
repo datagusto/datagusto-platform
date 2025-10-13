@@ -361,6 +361,104 @@ class GuardrailEvaluationResponse(BaseModel):
     )
 
 
+class GuardrailEvaluationLogResponse(BaseModel):
+    """
+    Response schema for guardrail evaluation log.
+
+    Represents a single evaluation log entry from the database.
+
+    Attributes:
+        id: Log entry UUID
+        request_id: Server-generated unique request ID
+        agent_id: Agent UUID
+        project_id: Project UUID
+        organization_id: Organization UUID
+        trace_id: Optional trace ID from external tracing system
+        timing: When evaluation occurred (on_start/on_end)
+        process_type: Type of process (llm/tool/retrieval/agent)
+        should_proceed: Final evaluation decision
+        log_data: JSONB containing detailed evaluation data
+        created_at: When evaluation was performed
+        updated_at: When log was last updated
+
+    Example:
+        >>> {
+        ...     "id": "123e4567-e89b-12d3-a456-426614174000",
+        ...     "request_id": "req_a1b2c3d4e5f6",
+        ...     "agent_id": "123e4567-e89b-12d3-a456-426614174001",
+        ...     "project_id": "123e4567-e89b-12d3-a456-426614174002",
+        ...     "organization_id": "123e4567-e89b-12d3-a456-426614174003",
+        ...     "trace_id": "langfuse_trace_xxx",
+        ...     "timing": "on_start",
+        ...     "process_type": "tool",
+        ...     "should_proceed": False,
+        ...     "log_data": {
+        ...         "process_name": "get_weather_tool",
+        ...         "request_context": {...},
+        ...         "evaluated_guardrail_ids": ["uuid1", "uuid2"],
+        ...         "triggered_guardrail_ids": ["uuid1"],
+        ...         "evaluation_result": {
+        ...             "triggered_guardrails": [...],
+        ...             "metadata": {...}
+        ...         },
+        ...         "evaluation_time_ms": 45
+        ...     },
+        ...     "created_at": "2025-01-15T10:30:00Z",
+        ...     "updated_at": "2025-01-15T10:30:00Z"
+        ... }
+    """
+
+    id: UUID = Field(..., description="Log entry UUID")
+    request_id: str = Field(..., description="Server-generated unique request ID")
+    agent_id: UUID = Field(..., description="Agent UUID")
+    project_id: UUID = Field(..., description="Project UUID")
+    organization_id: UUID = Field(..., description="Organization UUID")
+    trace_id: str | None = Field(None, description="Optional trace ID")
+    timing: str = Field(..., description="When evaluation occurred")
+    process_type: str = Field(..., description="Type of process")
+    should_proceed: bool = Field(..., description="Final evaluation decision")
+    log_data: dict[str, Any] = Field(..., description="Detailed evaluation data")
+    created_at: str = Field(..., description="When evaluation was performed")
+    updated_at: str = Field(..., description="When log was last updated")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GuardrailEvaluationLogListResponse(BaseModel):
+    """
+    Response schema for paginated list of evaluation logs.
+
+    Attributes:
+        items: List of evaluation log entries
+        total: Total number of logs matching the query
+        page: Current page number (1-indexed)
+        page_size: Number of items per page
+
+    Example:
+        >>> {
+        ...     "items": [
+        ...         {
+        ...             "id": "123e4567-e89b-12d3-a456-426614174000",
+        ...             "request_id": "req_a1b2c3d4e5f6",
+        ...             ...
+        ...         }
+        ...     ],
+        ...     "total": 42,
+        ...     "page": 1,
+        ...     "page_size": 20
+        ... }
+    """
+
+    items: list[GuardrailEvaluationLogResponse] = Field(
+        default_factory=list, description="List of evaluation log entries"
+    )
+    total: int = Field(..., description="Total number of logs")
+    page: int = Field(..., description="Current page number")
+    page_size: int = Field(..., description="Number of items per page")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 __all__ = [
     "ProcessType",
     "Timing",
@@ -372,4 +470,6 @@ __all__ = [
     "TriggeredGuardrail",
     "EvaluationMetadata",
     "GuardrailEvaluationResponse",
+    "GuardrailEvaluationLogResponse",
+    "GuardrailEvaluationLogListResponse",
 ]

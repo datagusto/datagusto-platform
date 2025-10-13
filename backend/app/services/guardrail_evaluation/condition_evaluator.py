@@ -259,11 +259,24 @@ def evaluate_condition(context: dict[str, Any], condition: dict[str, Any]) -> bo
                 f"Field '{field_path}' is None, cannot evaluate with operator '{operator}'"
             )
 
-        # LLM judge is handled separately
+        # LLM judge requires special handling
         if operator == Operator.LLM_JUDGE:
-            raise ConditionEvaluationError(
-                "LLM judge operator must be handled by llm_judge module"
-            )
+            from app.services.guardrail_evaluation.llm_judge import evaluate_with_llm
+            from app.services.guardrail_evaluation.exceptions import LLMJudgeError
+
+            if not target_value or not isinstance(target_value, str):
+                raise ConditionEvaluationError(
+                    f"LLM judge operator requires 'value' to be a non-empty string criteria"
+                )
+
+            try:
+                # Call LLM judge with field value and criteria
+                return evaluate_with_llm(
+                    field_value=field_value, criteria=target_value, timeout=30
+                )
+            except LLMJudgeError as e:
+                # Convert LLMJudgeError to ConditionEvaluationError for consistency
+                raise ConditionEvaluationError(f"LLM judge failed: {str(e)}")
 
         # Get evaluation function for operator
         eval_func = OPERATOR_MAP.get(operator)

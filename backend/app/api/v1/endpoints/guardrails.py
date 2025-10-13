@@ -22,6 +22,7 @@ from app.schemas.guardrail import (
     GuardrailResponse,
     GuardrailUpdate,
 )
+from app.schemas.guardrail_evaluation import GuardrailEvaluationLogListResponse
 from app.services.guardrail_service import GuardrailService
 
 router = APIRouter()
@@ -390,6 +391,116 @@ async def list_agent_guardrails(
 
     return await guardrail_service.list_agent_guardrails(
         agent_id=agent_id,
+        page=page,
+        page_size=min(page_size, 100),
+    )
+
+
+@router.get(
+    "/agents/{agent_id}/evaluation-logs",
+    response_model=GuardrailEvaluationLogListResponse,
+)
+async def list_agent_evaluation_logs(
+    agent_id: UUID,
+    page: int = 1,
+    page_size: int = 20,
+    current_user: dict = Depends(require_organization_member),
+    db: AsyncSession = Depends(get_async_db),
+) -> Any:
+    """
+    Get list of evaluation logs for an agent.
+
+    Returns paginated list of guardrail evaluation logs for a specific agent,
+    ordered by creation time (most recent first).
+
+    Args:
+        agent_id: Agent UUID
+        page: Page number (1-indexed)
+        page_size: Number of items per page (max 100)
+        current_user: Current authenticated user (from JWT)
+        db: Database session
+
+    Returns:
+        Paginated list of evaluation logs
+
+    Raises:
+        HTTPException:
+            - 403: User is not a project member
+            - 404: Agent not found
+
+    Note:
+        - User must be project member to access evaluation logs
+        - Logs are returned in descending order by created_at
+        - Each log contains full evaluation details in log_data JSONB field
+
+    Example:
+        >>> # GET /api/v1/guardrails/agents/{agent_id}/evaluation-logs?page=1&page_size=20
+        >>> {
+        ...     "items": [
+        ...         {
+        ...             "id": "123e4567-e89b-12d3-a456-426614174000",
+        ...             "request_id": "req_a1b2c3d4e5f6",
+        ...             "timing": "on_start",
+        ...             "process_type": "tool",
+        ...             "should_proceed": False,
+        ...             "log_data": {...},
+        ...             "created_at": "2025-01-15T10:30:00Z"
+        ...         }
+        ...     ],
+        ...     "total": 42,
+        ...     "page": 1,
+        ...     "page_size": 20
+        ... }
+    """
+    user_id = UUID(current_user["id"])
+
+    # Import here to avoid circular dependency
+    from app.repositories.guardrail_evaluation_log_repository import (
+        GuardrailEvaluationLogRepository,
+    )
+    from app.services.agent_service import AgentService
+
+    # Verify agent exists and user has access
+    agent_service = AgentService(db)
+    agent = await agent_service.get_agent(agent_id)
+
+    member_repo = ProjectMemberRepository(db)
+    is_member = await member_repo.is_member(UUID(agent["project_id"]), user_id)
+
+    if not is_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User must be project member to view evaluation logs",
+        )
+
+    # Fetch evaluation logs
+    log_repo = GuardrailEvaluationLogRepository(db)
+    logs, total = await log_repo.list_by_agent(
+        agent_id=agent_id,
+        page=page,
+        page_size=min(page_size, 100),
+    )
+
+    # Convert to response schema
+    return GuardrailEvaluationLogListResponse(
+        items=[
+            {
+                "id": str(log.id),
+                "request_id": log.request_id,
+                "agent_id": str(log.agent_id),
+                "project_id": str(log.project_id),
+                "organization_id": str(log.organization_id),
+                "trace_id": log.trace_id,
+                "timing": log.timing,
+                "process_type": log.process_type,
+                "should_proceed": log.should_proceed,
+                "log_data": log.log_data,
+                "created_at": log.created_at.isoformat() if log.created_at else "",
+                "updated_at": log.updated_at.isoformat() if log.updated_at else "",
+            }
+            for log in logs
+        ],
+        total=total,
         page=page,
         page_size=min(page_size, 100),
     )

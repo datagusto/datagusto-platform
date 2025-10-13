@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { agentService } from '@/features/agents/services';
 import { APIKeyList, AgentGuardrailList } from '@/features/agents/components';
+import { EvaluationLogsTable } from '@/features/guardrails/components';
 import type { Agent } from '@/features/agents/types';
 
 /**
@@ -174,6 +175,14 @@ export default function AgentDetailPage() {
             {/* Guardrails Section */}
             <section>
               <AgentGuardrailList agentId={agentId} projectId={projectId} />
+            </section>
+
+            {/* Evaluation Logs Section */}
+            <section>
+              <h3 className="text-lg font-semibold mb-4">Evaluation Logs</h3>
+              <div className="bg-white rounded-lg border border-gray-200">
+                <EvaluationLogsTable agentId={agentId} />
+              </div>
             </section>
 
             {/* Traces Section (Coming Soon) */}

@@ -44,11 +44,11 @@ dev:
 	@make -j2 dev-backend dev-frontend
 
 dev-backend:
-	@echo "Starting backend on http://localhost:8000"
-	cd backend && uv run uvicorn app.main:app --reload --port 8000
+	@echo "Starting backend on http://localhost:8888"
+	cd backend && uv run uvicorn app.main:app --reload --port 8888
 
 dev-frontend:
-	@echo "Starting frontend on http://localhost:3000"
+	@echo "Starting frontend on http://localhost:3001"
 	cd frontend && npm run dev
 
 # Database migrations
