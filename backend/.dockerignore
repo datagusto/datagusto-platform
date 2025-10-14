@@ -1,0 +1,60 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Linting/Formatting cache
+.ruff_cache/
+.mypy_cache/
+.pytype/
+
+# Alembic
+*.pyc
+
+# Documentation
+docs/
+
+# Git
+.git/
+.gitignore
+
+# Environment files
+.env.local
+.env.*.local
+
+# Session/temp files
+session_store.json
+*.log
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+
+# Test files
+tests/
+test_*.py
+*_test.py

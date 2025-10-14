@@ -106,7 +106,7 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
       NEXT_PUBLIC_API_VERSION: ${NEXT_PUBLIC_API_VERSION:-v1}
-      NODE_ENV: development
+      NODE_ENV: production
       NEXT_PUBLIC_DISABLE_DEVTOOLS: "true"
     networks:
       - datagusto-network
