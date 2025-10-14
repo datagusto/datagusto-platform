@@ -41,8 +41,8 @@ class Settings(BaseSettings):
     # =========================================================================
     # JWT Configuration
     # =========================================================================
-    JWT_SECRET_KEY: str
-    JWT_REFRESH_SECRET_KEY: str
+    JWT_SECRET_KEY: str = "development-secret-key-change-in-production-min-32-chars"
+    JWT_REFRESH_SECRET_KEY: str = "development-refresh-secret-key-change-in-production-min-32-chars"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     ALGORITHM: str = "HS256"

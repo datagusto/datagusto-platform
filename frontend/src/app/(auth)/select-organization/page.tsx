@@ -9,14 +9,14 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { organizationService } from '@/features/auth/services';
 import { useAuthStore } from '@/features/auth/stores';
 import type { UserOrganization } from '@/features/auth/types';
 
 /**
- * Organization selection page component
+ * Organization selection page content component
  *
  * @description Renders organization selection UI when user belongs to multiple organizations.
  * Fetches user's organizations and displays them as selectable cards.
@@ -41,7 +41,7 @@ import type { UserOrganization } from '@/features/auth/types';
  * // Redirected to /dashboard
  * ```
  */
-export default function SelectOrganizationPage() {
+function SelectOrganizationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const _from = searchParams.get('from') || 'login';
@@ -245,5 +245,29 @@ export default function SelectOrganizationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Organization selection page wrapper
+ *
+ * @description Wraps SelectOrganizationContent with Suspense boundary to satisfy Next.js 15 requirements.
+ * This is required when using useSearchParams() in a client component.
+ *
+ * @returns Organization selection page with proper Suspense boundary
+ */
+export default function SelectOrganizationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center px-4 py-12">
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          </div>
+        </div>
+      }
+    >
+      <SelectOrganizationContent />
+    </Suspense>
   );
 }
