@@ -62,9 +62,11 @@ export function useCreateAgent() {
 
   return useMutation<Agent, Error, AgentCreate>({
     mutationFn: (data: AgentCreate) => agentService.createAgent(data),
-    onSuccess: () => {
-      // Invalidate agents query to trigger refetch
-      queryClient.invalidateQueries({ queryKey: ['agents'] });
+    onSuccess: (_agent, variables) => {
+      // Invalidate agents query for the specific project to trigger refetch
+      queryClient.invalidateQueries({
+        queryKey: ['agents', variables.project_id],
+      });
     },
   });
 }

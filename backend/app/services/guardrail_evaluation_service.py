@@ -185,15 +185,24 @@ class GuardrailEvaluationService:
         # Calculate evaluation time
         evaluation_time_ms = int((time.time() - start_time) * 1000)
 
-        # Count triggered guardrails
+        # Count triggered guardrails (exclude ignored and error cases)
         triggered_count = sum(
-            1 for tg in triggered_guardrails_list if tg.triggered and not tg.error
+            1
+            for tg in triggered_guardrails_list
+            if tg.triggered and not tg.ignored and not tg.error
         )
+
+        # Count ignored guardrails
+        ignored_count = sum(1 for tg in triggered_guardrails_list if tg.ignored)
+
+        # Evaluated count excludes ignored guardrails
+        evaluated_count = len(guardrails) - ignored_count
 
         metadata = EvaluationMetadata(
             evaluation_time_ms=evaluation_time_ms,
-            evaluated_guardrails_count=len(guardrails),
+            evaluated_guardrails_count=evaluated_count,
             triggered_guardrails_count=triggered_count,
+            ignored_guardrails_count=ignored_count,
         )
 
         response = GuardrailEvaluationResponse(
@@ -261,6 +270,7 @@ class GuardrailEvaluationService:
                     guardrail_id=guardrail.id,
                     guardrail_name=guardrail.name,
                     triggered=False,
+                    ignored=False,
                     error=False,
                     matched_conditions=[],
                     actions=[],
@@ -296,26 +306,30 @@ class GuardrailEvaluationService:
                 guardrail_id=guardrail.id,
                 guardrail_name=guardrail.name,
                 triggered=True,
+                ignored=False,
                 error=False,
                 matched_conditions=matched_indices,
                 actions=action_results,
             )
 
         except (FieldPathResolutionError, ConditionEvaluationError) as e:
-            # Known evaluation errors
-            logger.error(f"Guardrail evaluation error for {guardrail.name}: {str(e)}")
+            # Known evaluation errors - these are ignored (field not found, parse errors, etc.)
+            logger.warning(
+                f"Guardrail '{guardrail.name}' ignored due to evaluation issue: {str(e)}"
+            )
             return TriggeredGuardrail(
                 guardrail_id=guardrail.id,
                 guardrail_name=guardrail.name,
                 triggered=False,
-                error=True,
-                error_message=str(e),
+                ignored=True,
+                ignored_reason=str(e),
+                error=False,
                 matched_conditions=[],
                 actions=[],
             )
 
         except Exception as e:
-            # Unexpected errors
+            # Unexpected system errors
             logger.error(
                 f"Unexpected error evaluating guardrail {guardrail.name}: {str(e)}"
             )
@@ -323,6 +337,7 @@ class GuardrailEvaluationService:
                 guardrail_id=guardrail.id,
                 guardrail_name=guardrail.name,
                 triggered=False,
+                ignored=False,
                 error=True,
                 error_message=f"Unexpected error: {str(e)}",
                 matched_conditions=[],
@@ -372,7 +387,10 @@ class GuardrailEvaluationService:
             "triggered_guardrail_ids": [
                 str(tg.guardrail_id)
                 for tg in triggered_guardrails
-                if tg.triggered and not tg.error
+                if tg.triggered and not tg.ignored and not tg.error
+            ],
+            "ignored_guardrail_ids": [
+                str(tg.guardrail_id) for tg in triggered_guardrails if tg.ignored
             ],
             "evaluation_result": {
                 "triggered_guardrails": [

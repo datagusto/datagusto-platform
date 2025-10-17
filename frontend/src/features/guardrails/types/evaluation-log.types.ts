@@ -14,6 +14,8 @@ export interface TriggeredGuardrail {
   guardrail_id: string;
   guardrail_name: string;
   triggered: boolean;
+  ignored: boolean;
+  ignored_reason?: string;
   error: boolean;
   error_message?: string;
   matched_conditions: number[];
@@ -36,6 +38,7 @@ export interface EvaluationMetadata {
   evaluation_time_ms: number;
   evaluated_guardrails_count: number;
   triggered_guardrails_count: number;
+  ignored_guardrails_count: number;
 }
 
 /**

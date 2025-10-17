@@ -18,6 +18,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchEvaluationLogsByAgent } from '../services/evaluation-logs.service';
+import { EvaluationLogDetailModal } from './evaluation-log-detail-modal';
+import type { GuardrailEvaluationLog } from '../types';
 
 /**
  * Evaluation logs table props
@@ -76,6 +78,10 @@ function Badge({
 export function EvaluationLogsTable({ agentId }: EvaluationLogsTableProps) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [selectedLog, setSelectedLog] = useState<GuardrailEvaluationLog | null>(
+    null
+  );
+  const [modalOpen, setModalOpen] = useState(false);
 
   // Fetch evaluation logs with React Query
   const { data, isLoading, error } = useQuery({
@@ -107,24 +113,50 @@ export function EvaluationLogsTable({ agentId }: EvaluationLogsTableProps) {
   // Empty state
   if (!data || data.items.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
-        <p>No evaluation logs found</p>
-        <p className="text-sm mt-2">
-          Logs will appear here when guardrails are evaluated
-        </p>
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Guardrail Logs</h3>
+        </div>
+
+        {/* Empty state */}
+        <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+          <svg
+            className="w-12 h-12 text-gray-400 mx-auto mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          <h4 className="text-sm font-medium text-gray-900 mb-2">
+            No guardrail logs found
+          </h4>
+          <p className="text-sm text-gray-600">
+            Logs will appear here when guardrails are evaluated
+          </p>
+        </div>
       </div>
     );
   }
 
   const totalPages = Math.ceil(data.total / pageSize);
 
+  const handleRowClick = (log: GuardrailEvaluationLog) => {
+    setSelectedLog(log);
+    setModalOpen(true);
+  };
+
   return (
     <div className="space-y-4">
-      {/* Page size selector */}
+      {/* Header with page size selector */}
       <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600">
-          Showing {data.items.length} of {data.total} logs
-        </div>
+        <h3 className="text-lg font-semibold">Guardrail Logs</h3>
         <div className="flex items-center space-x-2">
           <label className="text-sm text-gray-600">Per page:</label>
           <select
@@ -144,37 +176,38 @@ export function EvaluationLogsTable({ agentId }: EvaluationLogsTableProps) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto border rounded-lg">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Request ID
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Created At
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Process
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Type
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Timing
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Decision
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Triggered
               </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {data.items.map((log) => (
-              <tr key={log.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm font-mono text-gray-900">
+              <tr
+                key={log.id}
+                onClick={() => handleRowClick(log)}
+                className="hover:bg-gray-50 cursor-pointer transition-colors"
+              >
+                <td className="px-6 py-4 text-sm font-mono text-gray-900">
                   <span
                     className="truncate max-w-32 block"
                     title={log.request_id}
@@ -182,30 +215,26 @@ export function EvaluationLogsTable({ agentId }: EvaluationLogsTableProps) {
                     {log.request_id}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-6 py-4 text-sm text-gray-600">
                   {formatDate(log.created_at)}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-900">
+                <td className="px-6 py-4 text-sm text-gray-900">
                   {log.log_data.process_name}
                 </td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-6 py-4 text-sm">
                   <Badge variant="info">{log.process_type}</Badge>
                 </td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-6 py-4 text-sm">
                   <Badge
                     variant={log.timing === 'on_start' ? 'default' : 'warning'}
                   >
                     {log.timing}
                   </Badge>
                 </td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-6 py-4 text-sm">
                   <Badge variant={log.should_proceed ? 'success' : 'danger'}>
                     {log.should_proceed ? 'Proceed' : 'Blocked'}
                   </Badge>
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
-                  {log.log_data.triggered_guardrail_ids.length} /{' '}
-                  {log.log_data.evaluated_guardrail_ids.length}
                 </td>
               </tr>
             ))}
@@ -235,6 +264,13 @@ export function EvaluationLogsTable({ agentId }: EvaluationLogsTableProps) {
           </button>
         </div>
       </div>
+
+      {/* Detail Modal */}
+      <EvaluationLogDetailModal
+        log={selectedLog}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
     </div>
   );
 }

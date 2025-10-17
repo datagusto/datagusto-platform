@@ -9,13 +9,12 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
-import { agentService } from '@/features/agents/services';
+import { useListAgents } from '@/features/agents/hooks';
 import { CreateAgentDialog } from '@/features/agents/components';
-import type { Project } from '@/features/projects/types';
-import type { Agent } from '@/features/agents/types';
 
 /**
  * Project agents page component
@@ -42,65 +41,43 @@ export default function ProjectAgentsPage() {
   const params = useParams();
   const projectId = params.projectId as string;
 
-  const [project, setProject] = useState<Project | null>(null);
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  // Fetch project details
-  useEffect(() => {
-    let isMounted = true;
+  // Fetch project details using React Query
+  const {
+    data: project,
+    isLoading: isProjectLoading,
+    error: projectError,
+  } = useQuery({
+    queryKey: ['projects', projectId],
+    queryFn: () => projectService.getProject(projectId),
+    enabled: !!projectId,
+  });
 
-    async function fetchData() {
-      if (!projectId) return;
+  // Fetch agents using React Query
+  const {
+    data: agentsResponse,
+    isLoading: isAgentsLoading,
+    error: agentsError,
+  } = useListAgents(projectId, {
+    is_active: true,
+    is_archived: false,
+  });
 
-      try {
-        setIsLoading(true);
-        setError(null);
+  // Combine loading states
+  const isLoading = isProjectLoading || isAgentsLoading;
 
-        // Fetch project and agents in parallel
-        const [projectData, agentsResponse] = await Promise.all([
-          projectService.getProject(projectId),
-          agentService.listAgents(projectId, {
-            is_active: true,
-            is_archived: false,
-          }),
-        ]);
+  // Combine error states
+  const error = projectError || agentsError;
 
-        if (!isMounted) return;
+  // Handle authentication errors
+  if (error instanceof Error && error.message.includes('401')) {
+    router.push('/sign-in');
+    return null;
+  }
 
-        setProject(projectData);
-        setAgents(agentsResponse.items);
-      } catch (err) {
-        if (!isMounted) return;
-
-        console.error('Failed to fetch data:', err);
-
-        // Handle authentication errors by redirecting to login
-        if (err instanceof Error && err.message.includes('401')) {
-          router.push('/sign-in');
-          return;
-        }
-
-        setError(
-          err instanceof Error
-            ? err.message
-            : 'Failed to load data. Please try again.'
-        );
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    fetchData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [projectId, router]);
+  // Extract agents from response
+  const agents = agentsResponse?.items || [];
 
   // Handle dialog close
   const handleDialogClose = (open: boolean) => {
@@ -220,7 +197,11 @@ export default function ProjectAgentsPage() {
               />
             </svg>
             <h3 className="text-lg font-medium text-red-900 mb-2">Error</h3>
-            <p className="text-red-700">{error}</p>
+            <p className="text-red-700">
+              {error instanceof Error
+                ? error.message
+                : 'Failed to load data. Please try again.'}
+            </p>
           </div>
         )}
 

@@ -177,12 +177,9 @@ export default function AgentDetailPage() {
               <AgentGuardrailList agentId={agentId} projectId={projectId} />
             </section>
 
-            {/* Evaluation Logs Section */}
+            {/* Guardrail Logs Section */}
             <section>
-              <h3 className="text-lg font-semibold mb-4">Evaluation Logs</h3>
-              <div className="bg-white rounded-lg border border-gray-200">
-                <EvaluationLogsTable agentId={agentId} />
-              </div>
+              <EvaluationLogsTable agentId={agentId} />
             </section>
 
             {/* Traces Section (Coming Soon) */}

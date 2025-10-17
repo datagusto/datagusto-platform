@@ -8,3 +8,4 @@
 
 export * from './create-guardrail-form';
 export * from './evaluation-logs-table';
+export * from './evaluation-log-detail-modal';

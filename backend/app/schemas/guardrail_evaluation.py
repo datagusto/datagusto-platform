@@ -224,17 +224,27 @@ class TriggeredGuardrail(BaseModel):
         guardrail_id: UUID of the guardrail
         guardrail_name: Name of the guardrail
         triggered: Whether the guardrail was triggered
-        error: Whether an error occurred during evaluation
+        ignored: Whether the guardrail was ignored (could not be evaluated)
+        ignored_reason: Reason why the guardrail was ignored (e.g., field not found, parse error)
+        error: Whether an actual error occurred during evaluation
         error_message: Error message if error occurred
         matched_conditions: Indices of matched conditions (0-based)
         actions: List of executed actions
+
+    Note:
+        - triggered=True: Guardrail conditions matched and actions were executed
+        - triggered=False, ignored=False, error=False: Guardrail evaluated successfully but did not trigger
+        - triggered=False, ignored=True: Guardrail could not be evaluated (data parsing issues, missing fields, etc.)
+        - error=True: Actual error occurred during guardrail processing (system error, unexpected exception)
     """
 
     guardrail_id: UUID = Field(..., description="Guardrail UUID")
     guardrail_name: str = Field(..., description="Guardrail name")
     triggered: bool = Field(..., description="Whether guardrail was triggered")
-    error: bool = Field(False, description="Whether error occurred")
-    error_message: str | None = Field(None, description="Error message if any")
+    ignored: bool = Field(False, description="Whether guardrail was ignored (could not be evaluated)")
+    ignored_reason: str | None = Field(None, description="Reason for ignoring (if ignored)")
+    error: bool = Field(False, description="Whether an actual error occurred during evaluation")
+    error_message: str | None = Field(None, description="Error message if error occurred")
     matched_conditions: list[int] = Field(
         default_factory=list, description="Indices of matched conditions"
     )
@@ -251,16 +261,20 @@ class EvaluationMetadata(BaseModel):
 
     Attributes:
         evaluation_time_ms: Time taken to evaluate in milliseconds
-        evaluated_guardrails_count: Total number of guardrails evaluated
+        evaluated_guardrails_count: Number of guardrails successfully evaluated (excludes ignored)
         triggered_guardrails_count: Number of guardrails triggered
+        ignored_guardrails_count: Number of guardrails ignored due to parsing/evaluation issues
     """
 
     evaluation_time_ms: int = Field(..., description="Evaluation time in ms")
     evaluated_guardrails_count: int = Field(
-        ..., description="Total guardrails evaluated"
+        ..., description="Number of guardrails successfully evaluated (excludes ignored)"
     )
     triggered_guardrails_count: int = Field(
         ..., description="Number of triggered guardrails"
+    )
+    ignored_guardrails_count: int = Field(
+        ..., description="Number of ignored guardrails"
     )
 
     model_config = ConfigDict(from_attributes=True)
@@ -284,6 +298,8 @@ class GuardrailEvaluationResponse(BaseModel):
         ...             "guardrail_id": "123e4567-e89b-12d3-a456-426614174000",
         ...             "guardrail_name": "Block sensitive data",
         ...             "triggered": True,
+        ...             "ignored": False,
+        ...             "ignored_reason": None,
         ...             "error": False,
         ...             "error_message": None,
         ...             "matched_conditions": [0, 2],
@@ -333,6 +349,8 @@ class GuardrailEvaluationResponse(BaseModel):
                             "guardrail_id": "123e4567-e89b-12d3-a456-426614174000",
                             "guardrail_name": "Block sensitive data",
                             "triggered": True,
+                            "ignored": False,
+                            "ignored_reason": None,
                             "error": False,
                             "error_message": None,
                             "matched_conditions": [0, 2],
@@ -354,6 +372,7 @@ class GuardrailEvaluationResponse(BaseModel):
                         "evaluation_time_ms": 45,
                         "evaluated_guardrails_count": 3,
                         "triggered_guardrails_count": 1,
+                        "ignored_guardrails_count": 0,
                     },
                 }
             ]

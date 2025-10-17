@@ -7,5 +7,6 @@
  */
 
 export { useCreateAgent } from './use-create-agent';
+export { useListAgents } from './use-list-agents';
 export { useAssignGuardrail } from './use-assign-guardrail';
 export { useUnassignGuardrail } from './use-unassign-guardrail';
