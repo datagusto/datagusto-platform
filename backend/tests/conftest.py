@@ -424,7 +424,9 @@ async def _cleanup_test_database(engine):
 
     async with engine.connect() as connection:
         # Truncate all tables in reverse order of dependencies
-        await connection.execute(text("TRUNCATE TABLE guardrail_evaluation_logs CASCADE"))
+        await connection.execute(
+            text("TRUNCATE TABLE guardrail_evaluation_logs CASCADE")
+        )
         await connection.execute(text("TRUNCATE TABLE user_archives CASCADE"))
         await connection.execute(
             text("TRUNCATE TABLE organization_suspensions CASCADE")

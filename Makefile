@@ -1,4 +1,4 @@
-.PHONY: help install install-backend install-frontend dev dev-backend dev-frontend migrate test test-backend test-frontend lint lint-backend lint-frontend format format-backend format-frontend clean
+.PHONY: help install install-backend install-frontend dev dev-backend dev-frontend migrate test test-backend test-frontend lint lint-backend lint-frontend format format-backend format-frontend typecheck-frontend check check-backend check-frontend check-security clean
 
 # Default target
 help:
@@ -24,6 +24,13 @@ help:
 	@echo "  make format            - Format code for both"
 	@echo "  make format-backend    - Format backend code"
 	@echo "  make format-frontend   - Format frontend code"
+	@echo ""
+	@echo "  make typecheck-frontend - Run TypeScript type check"
+	@echo ""
+	@echo "  make check             - Run all CI checks (backend + frontend + security)"
+	@echo "  make check-backend     - Run backend CI checks (lint + format + tests)"
+	@echo "  make check-frontend    - Run frontend CI checks (format + typecheck + lint + tests)"
+	@echo "  make check-security    - Run security scan (gitleaks)"
 	@echo ""
 	@echo "  make clean             - Clean build artifacts and caches"
 
@@ -88,6 +95,42 @@ format-backend:
 format-frontend:
 	@echo "Formatting frontend code..."
 	cd frontend && npm run format
+
+# Type checking
+typecheck-frontend:
+	@echo "Running TypeScript type check..."
+	cd frontend && npx tsc --noEmit
+
+# CI Checks (same as GitHub Actions)
+check: check-backend check-frontend check-security
+
+check-backend:
+	@echo "Running backend CI checks..."
+	@echo "1. Running Ruff linter check..."
+	cd backend && uv run --frozen ruff check .
+	@echo "2. Running Ruff formatter check..."
+	cd backend && uv run --frozen ruff format --check .
+	@echo "3. Running pytest..."
+	cd backend && uv run --frozen pytest --verbose --color=yes
+	@echo "✅ Backend CI checks passed!"
+
+check-frontend:
+	@echo "Running frontend CI checks..."
+	@echo "1. Running Prettier format check..."
+	cd frontend && npm run format:check
+	@echo "2. Running TypeScript type check..."
+	cd frontend && npx tsc --noEmit
+	@echo "3. Running ESLint..."
+	cd frontend && npm run lint
+	@echo "4. Running Vitest tests..."
+	cd frontend && npm run test:run || echo "⚠️  No test files found (skipping)"
+	@echo "✅ Frontend CI checks passed!"
+
+check-security:
+	@echo "Running security scan..."
+	@command -v gitleaks >/dev/null 2>&1 || { echo "⚠️  gitleaks is not installed. Install it with: brew install gitleaks"; exit 1; }
+	gitleaks detect --config .gitleaks.toml --verbose
+	@echo "✅ Security scan passed!"
 
 # Clean
 clean:

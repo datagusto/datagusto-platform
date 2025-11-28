@@ -16,15 +16,25 @@ import { useAuthStore } from '@/features/auth/stores';
 import type { UserOrganization } from '@/features/auth/types';
 
 /**
- * Organization selection page content component
+ * Loading spinner component for Suspense fallback
+ */
+function LoadingSpinner() {
+  return (
+    <div className="flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="w-full max-w-2xl">
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Organization selection content component
  *
  * @description Renders organization selection UI when user belongs to multiple organizations.
  * Fetches user's organizations and displays them as selectable cards.
- *
- * **Route**: /select-organization
- *
- * **Query Parameters**:
- * - from: 'login' | 'register' (identifies where user came from)
  *
  * **Features**:
  * - Displays organization name and user's role
@@ -32,14 +42,6 @@ import type { UserOrganization } from '@/features/auth/types';
  * - Loading state while fetching organizations
  * - Error handling with retry
  * - Automatic navigation to dashboard after selection
- *
- * @example
- * ```
- * // User logs in with multiple organizations
- * // Redirected to /select-organization?from=login
- * // Selects organization
- * // Redirected to /dashboard
- * ```
  */
 function SelectOrganizationContent() {
   const router = useRouter();
@@ -249,24 +251,26 @@ function SelectOrganizationContent() {
 }
 
 /**
- * Organization selection page wrapper
+ * Organization selection page component
  *
- * @description Wraps SelectOrganizationContent with Suspense boundary to satisfy Next.js 15 requirements.
- * This is required when using useSearchParams() in a client component.
+ * @description Wraps SelectOrganizationContent with Suspense boundary for useSearchParams support in Next.js 15.
  *
- * @returns Organization selection page with proper Suspense boundary
+ * **Route**: /select-organization
+ *
+ * **Query Parameters**:
+ * - from: 'login' | 'register' (identifies where user came from)
+ *
+ * @example
+ * ```
+ * // User logs in with multiple organizations
+ * // Redirected to /select-organization?from=login
+ * // Selects organization
+ * // Redirected to /dashboard
+ * ```
  */
 export default function SelectOrganizationPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center px-4 py-12">
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingSpinner />}>
       <SelectOrganizationContent />
     </Suspense>
   );

@@ -261,12 +261,12 @@ def evaluate_condition(context: dict[str, Any], condition: dict[str, Any]) -> bo
 
         # LLM judge requires special handling
         if operator == Operator.LLM_JUDGE:
-            from app.services.guardrail_evaluation.llm_judge import evaluate_with_llm
             from app.services.guardrail_evaluation.exceptions import LLMJudgeError
+            from app.services.guardrail_evaluation.llm_judge import evaluate_with_llm
 
             if not target_value or not isinstance(target_value, str):
                 raise ConditionEvaluationError(
-                    f"LLM judge operator requires 'value' to be a non-empty string criteria"
+                    "LLM judge operator requires 'value' to be a non-empty string criteria"
                 )
 
             try:

@@ -31,5 +31,5 @@ export {
   type ApiClientOptions,
 } from './api-client';
 
-// Export utilities (future)
-// export { cn } from './utils';
+// Export utilities
+export { cn } from './utils';

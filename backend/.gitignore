@@ -63,4 +63,5 @@ cover/
 .env.*.local
 
 # Project specific
-test.db 
+test.db
+*.json

@@ -12,7 +12,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { agentService } from '@/features/agents/services';
-import { APIKeyList, AgentGuardrailList } from '@/features/agents/components';
+import {
+  APIKeyList,
+  AgentGuardrailList,
+  AlignmentSessionList,
+} from '@/features/agents/components';
 import { EvaluationLogsTable } from '@/features/guardrails/components';
 import type { Agent } from '@/features/agents/types';
 
@@ -177,9 +181,18 @@ export default function AgentDetailPage() {
               <AgentGuardrailList agentId={agentId} projectId={projectId} />
             </section>
 
-            {/* Guardrail Logs Section */}
+            {/* Alignment Sessions Section */}
             <section>
-              <EvaluationLogsTable agentId={agentId} />
+              <h3 className="text-lg font-semibold mb-4">Session History</h3>
+              <AlignmentSessionList agentId={agentId} />
+            </section>
+
+            {/* Evaluation Logs Section */}
+            <section>
+              <h3 className="text-lg font-semibold mb-4">Guardrail History</h3>
+              <div className="bg-white rounded-lg border border-gray-200">
+                <EvaluationLogsTable agentId={agentId} />
+              </div>
             </section>
 
             {/* Traces Section (Coming Soon) */}

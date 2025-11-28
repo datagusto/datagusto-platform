@@ -58,3 +58,5 @@ docker-compose*.yml
 tests/
 test_*.py
 *_test.py
+
+*.json

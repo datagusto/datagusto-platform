@@ -1,10 +1,9 @@
 import os
 
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-
 from app.api.v1.router import api_router
 from app.core.multi_tenant import extract_organization_id
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 
 # Application configuration is loaded from settings
 app = FastAPI(

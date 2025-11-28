@@ -7,3 +7,4 @@
  */
 
 export { agentService } from './agent.service';
+export { alignmentService } from './alignment.service';

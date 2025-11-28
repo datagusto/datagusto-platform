@@ -21,7 +21,12 @@ from app.schemas.agent import (
     AgentResponse,
     AgentUpdate,
 )
+from app.schemas.session import (
+    SessionDashboardListResponse,
+    SessionDetailResponse,
+)
 from app.services.agent_service import AgentService
+from app.services.session_service import SessionService
 
 router = APIRouter()
 
@@ -262,3 +267,108 @@ async def delete_api_key(
         key_id=key_id,
         user_id=user_id,
     )
+
+
+# Session management endpoints
+
+
+@router.get("/{agent_id}/sessions", response_model=SessionDashboardListResponse)
+async def list_agent_sessions(
+    agent_id: UUID,
+    page: int = 1,
+    page_size: int = 20,
+    session_status: str | None = None,
+    current_user: dict = Depends(require_organization_member),
+    db: AsyncSession = Depends(get_async_db),
+) -> Any:
+    """
+    Get list of sessions for an agent.
+
+    Returns sessions with alignment summary data for dashboard display.
+
+    Args:
+        agent_id: Agent UUID
+        page: Page number (1-indexed)
+        page_size: Number of items per page (max 100)
+        session_status: Filter by status (active, completed, expired)
+        current_user: Current authenticated user (from JWT)
+        db: Database session
+
+    Returns:
+        List of sessions with summary data
+
+    Raises:
+        HTTPException: 404 if agent not found, 403 if not project member
+    """
+    user_id = UUID(current_user["id"])
+    agent_service = AgentService(db)
+    session_service = SessionService(db)
+
+    # Get agent to check project membership
+    agent = await agent_service.get_agent(agent_id)
+    member_repo = ProjectMemberRepository(db)
+    is_member = await member_repo.is_member(UUID(agent["project_id"]), user_id)
+
+    if not is_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User must be project member to view sessions",
+        )
+
+    return await session_service.list_sessions_for_dashboard(
+        agent_id=agent_id,
+        page=page,
+        page_size=min(page_size, 100),
+        session_status=session_status,
+    )
+
+
+@router.get("/{agent_id}/sessions/{session_id}", response_model=SessionDetailResponse)
+async def get_agent_session_detail(
+    agent_id: UUID,
+    session_id: UUID,
+    current_user: dict = Depends(require_organization_member),
+    db: AsyncSession = Depends(get_async_db),
+) -> Any:
+    """
+    Get detailed session information.
+
+    Returns full session data including inference results,
+    validation rules, and validation history for dashboard display.
+
+    Args:
+        agent_id: Agent UUID
+        session_id: Session UUID
+        current_user: Current authenticated user (from JWT)
+        db: Database session
+
+    Returns:
+        Detailed session data with inference_result, validation_rules, validation_history
+
+    Raises:
+        HTTPException: 404 if agent/session not found, 403 if not project member
+    """
+    user_id = UUID(current_user["id"])
+    agent_service = AgentService(db)
+    session_service = SessionService(db)
+
+    # Get agent to check project membership
+    agent = await agent_service.get_agent(agent_id)
+    member_repo = ProjectMemberRepository(db)
+    is_member = await member_repo.is_member(UUID(agent["project_id"]), user_id)
+
+    if not is_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User must be project member to view session details",
+        )
+
+    # Verify session belongs to agent
+    session_data = await session_service.get_session(session_id)
+    if session_data["agent_id"] != str(agent_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found for this agent",
+        )
+
+    return await session_service.get_session_detail_for_dashboard(session_id)

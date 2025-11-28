@@ -29,7 +29,7 @@ import type { NextRequest } from 'next/server';
  * When HttpOnly cookies are implemented, middleware will check authentication
  * and redirect unauthenticated users to /sign-in automatically.
  */
-const protectedRoutes: string[] = ['/dashboard'];
+const protectedRoutes: string[] = [];
 
 /**
  * Middleware function
@@ -38,14 +38,13 @@ const protectedRoutes: string[] = ['/dashboard'];
  * Currently passes through all requests due to localStorage auth limitations.
  *
  * **Current Behavior**:
- * - Logs request information in development mode
  * - Passes all requests through without blocking
- * - Authentication is handled client-side by DashboardLayout
+ * - Authentication is handled client-side by layout components
  *
  * **Why Not Enforce Auth Here?**:
  * - localStorage is only accessible on client-side (browser)
  * - Middleware runs on server-side (cannot read localStorage)
- * - Client-side layouts (DashboardLayout) handle auth checks and redirects
+ * - Client-side layout components handle auth checks and redirects
  *
  * **Future Implementation** (with HttpOnly cookies):
  * ```typescript
@@ -73,7 +72,7 @@ export function middleware(request: NextRequest) {
   // }
 
   // Currently: Pass through all requests
-  // Authentication is handled client-side by DashboardLayout component
+  // Authentication is handled client-side by layout components
   return NextResponse.next();
 }
 
@@ -86,17 +85,11 @@ export function middleware(request: NextRequest) {
  * - `/` - Root page
  * - `/sign-in` - Sign-in page
  * - `/sign-up` - Sign-up page
- * - `/dashboard/*` - Dashboard and all sub-routes
  *
  * **Why Include Auth Pages?**:
  * - Future: Redirect already-authenticated users away from auth pages
  * - Currently: No-op, but prepared for future enhancement
  */
 export const config = {
-  matcher: [
-    '/',
-    '/sign-in',
-    '/sign-up',
-    '/dashboard/:path*', // Matches /dashboard and all sub-routes
-  ],
+  matcher: ['/', '/sign-in', '/sign-up'],
 };

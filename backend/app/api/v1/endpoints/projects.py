@@ -635,7 +635,7 @@ async def create_guardrail(
 
     return await guardrail_service.create_guardrail(
         name=guardrail_in.name,
-        definition=guardrail_in.definition,
+        definition=guardrail_in.definition.model_dump(),
         project_id=project_id,
         created_by=user_id,
     )

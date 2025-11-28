@@ -171,7 +171,9 @@ export function EvaluationLogDetailModal({
                   </div>
                   <div>
                     <Badge
-                      variant={log.timing === 'on_start' ? 'default' : 'warning'}
+                      variant={
+                        log.timing === 'on_start' ? 'default' : 'warning'
+                      }
                     >
                       {log.timing}
                     </Badge>
@@ -254,7 +256,7 @@ export function EvaluationLogDetailModal({
                 Evaluated Guardrails
               </h3>
               <div className="space-y-3">
-                {evaluation_result.triggered_guardrails.map((guardrail, idx) => (
+                {evaluation_result.triggered_guardrails.map((guardrail) => (
                   <div
                     key={guardrail.guardrail_id}
                     className={`border rounded-lg p-4 ${
@@ -298,7 +300,8 @@ export function EvaluationLogDetailModal({
                     {/* Ignored Reason */}
                     {guardrail.ignored && guardrail.ignored_reason && (
                       <div className="mt-2 p-2 bg-gray-100 rounded text-sm text-gray-700">
-                        <strong>Ignored Reason:</strong> {guardrail.ignored_reason}
+                        <strong>Ignored Reason:</strong>{' '}
+                        {guardrail.ignored_reason}
                       </div>
                     )}
 

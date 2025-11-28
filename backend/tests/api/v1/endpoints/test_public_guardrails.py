@@ -23,7 +23,6 @@ from tests.repositories.conftest import (
     seed_test_user,
 )
 
-
 # ============================================================================
 # Test Fixtures
 # ============================================================================
@@ -243,9 +242,7 @@ async def verify_evaluation_log(
 
 
 @pytest.mark.asyncio
-async def test_block_action_contains_on_start(
-    integration_client, guardrail_test_setup
-):
+async def test_block_action_contains_on_start(integration_client, guardrail_test_setup):
     """
     Test block action with contains operator on on_start timing.
 
@@ -352,9 +349,7 @@ async def test_block_action_contains_on_start(
 
 
 @pytest.mark.asyncio
-async def test_warn_action_allow_proceed_true(
-    integration_client, guardrail_test_setup
-):
+async def test_warn_action_allow_proceed_true(integration_client, guardrail_test_setup):
     """
     Test warn action with allow_proceed=true on on_end timing.
 
@@ -551,9 +546,7 @@ async def test_warn_action_allow_proceed_false(
 
 
 @pytest.mark.asyncio
-async def test_modify_action_drop_field(
-    integration_client, guardrail_test_setup
-):
+async def test_modify_action_drop_field(integration_client, guardrail_test_setup):
     """
     Test modify action with drop_field modification type.
 
@@ -660,9 +653,7 @@ async def test_modify_action_drop_field(
 
 
 @pytest.mark.asyncio
-async def test_multiple_conditions_and_logic(
-    integration_client, guardrail_test_setup
-):
+async def test_multiple_conditions_and_logic(integration_client, guardrail_test_setup):
     """
     Test multiple conditions with AND logic.
 
@@ -715,9 +706,7 @@ async def test_multiple_conditions_and_logic(
         "process_name": "test",
         "process_type": "llm",
         "timing": "on_start",
-        "context": {
-            "input": {"query": "This is sensitive data", "token_count": 100}
-        },
+        "context": {"input": {"query": "This is sensitive data", "token_count": 100}},
     }
 
     response = await integration_client.post(
@@ -775,9 +764,7 @@ async def test_multiple_conditions_and_logic(
 
 
 @pytest.mark.asyncio
-async def test_multiple_conditions_or_logic(
-    integration_client, guardrail_test_setup
-):
+async def test_multiple_conditions_or_logic(integration_client, guardrail_test_setup):
     """
     Test multiple conditions with OR logic.
 

@@ -6,10 +6,98 @@ including JSONB definition validation.
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+
+# ===== Guardrail Definition Models =====
+
+
+class GuardrailCondition(BaseModel):
+    """Individual condition in a guardrail trigger"""
+
+    field: str = Field(description="Field path to evaluate (e.g., 'input.query')")
+    operator: Literal[
+        "contains",
+        "equals",
+        "regex",  # String operators
+        "gt",
+        "lt",
+        "gte",
+        "lte",  # Numeric operators
+        "size_gt",
+        "size_lt",
+        "size_gte",
+        "size_lte",  # Size operators
+        "llm_judge",  # LLM-based evaluation
+    ] = Field(description="Comparison operator")
+    value: Any = Field(description="Value to compare against")
+
+
+class GuardrailTrigger(BaseModel):
+    """Trigger conditions for a guardrail"""
+
+    type: Literal["on_start", "on_end"] = Field(
+        description="When to evaluate: before (on_start) or after (on_end) execution"
+    )
+    logic: Literal["and", "or"] = Field(
+        default="and",
+        description="How to combine conditions: all must match (and) or any can match (or)",
+    )
+    conditions: list[GuardrailCondition] = Field(
+        description="List of conditions to evaluate"
+    )
+
+
+class GuardrailActionConfig(BaseModel):
+    """Configuration for guardrail actions (flexible schema)"""
+
+    model_config = ConfigDict(extra="allow")  # Allow additional fields
+
+    message: str | None = Field(None, description="Message to display (for block/warn)")
+    allow_proceed: bool | None = Field(
+        None, description="Allow proceeding after warning"
+    )
+    drop_field: str | None = Field(None, description="Field to drop (for modify)")
+    drop_item: dict[str, Any] | None = Field(
+        None, description="Item to drop (for modify)"
+    )
+
+
+class GuardrailAction(BaseModel):
+    """Action to take when guardrail is triggered"""
+
+    type: Literal["block", "warn", "modify"] = Field(
+        description="Action type: block execution, warn user, or modify data"
+    )
+    priority: int = Field(default=1, description="Execution priority (1 = highest)")
+    config: GuardrailActionConfig = Field(description="Action-specific configuration")
+
+
+class GuardrailMetadata(BaseModel):
+    """Metadata for a guardrail"""
+
+    description: str = Field(description="Human-readable description")
+    tags: list[str] = Field(default_factory=list, description="Tags for categorization")
+    severity: Literal["low", "medium", "high", "critical"] = Field(
+        default="medium", description="Severity level of this guardrail"
+    )
+
+
+class GuardrailDefinition(BaseModel):
+    """Complete guardrail definition with trigger and actions"""
+
+    version: str = Field(default="1.0", description="Definition version")
+    schema_version: str = Field(default="1", description="Schema version")
+    trigger: GuardrailTrigger = Field(description="Trigger conditions")
+    actions: list[GuardrailAction] = Field(description="Actions to execute")
+    metadata: GuardrailMetadata | None = Field(
+        default=None, description="Metadata (optional)"
+    )
+
+
+# ===== Guardrail CRUD Schemas =====
 
 
 class GuardrailBase(BaseModel):
@@ -18,37 +106,23 @@ class GuardrailBase(BaseModel):
 
     Attributes:
         name: Guardrail display name (required)
-        definition: JSONB definition containing trigger conditions and actions
+        definition: Strongly-typed guardrail definition with trigger conditions and actions
 
-    Definition structure:
-        {
-            "version": "1.0",
-            "schema_version": "1",
-            "trigger": {
-                "type": "on_start" | "on_end",
-                "logic": "and" | "or",
-                "conditions": [
-                    {
-                        "field": "input.query",
-                        "operator": "contains" | "equals" | "regex" | "gt" | "lt" | "gte" | "lte" |
-                                   "size_gt" | "size_lt" | "size_gte" | "size_lte" | "llm_judge",
-                        "value": <any>
-                    }
-                ]
-            },
-            "actions": [
-                {
-                    "type": "block" | "warn" | "modify",
-                    "priority": <int>,
-                    "config": {...}
-                }
-            ],
-            "metadata": {
-                "description": "...",
-                "tags": [...],
-                "severity": "low" | "medium" | "high" | "critical"
-            }
-        }
+    Definition structure (now validated with Pydantic):
+        - version: Definition version (default: "1.0")
+        - schema_version: Schema version (default: "1")
+        - trigger: GuardrailTrigger
+          - type: "on_start" or "on_end"
+          - logic: "and" or "or"
+          - conditions: List of GuardrailCondition
+        - actions: List of GuardrailAction
+          - type: "block", "warn", or "modify"
+          - priority: Execution order (1 = highest)
+          - config: GuardrailActionConfig
+        - metadata: GuardrailMetadata
+          - description: Human-readable description
+          - tags: List of tags
+          - severity: "low", "medium", "high", or "critical"
 
     Trigger logic:
         - "and": All conditions must match for trigger
@@ -67,38 +141,9 @@ class GuardrailBase(BaseModel):
     """
 
     name: str = Field(..., min_length=1, max_length=255, description="Guardrail name")
-    definition: dict[str, Any] = Field(
+    definition: GuardrailDefinition = Field(
         ...,
-        description="JSONB definition (trigger conditions + actions)",
-        examples=[
-            {
-                "version": "1.0",
-                "schema_version": "1",
-                "trigger": {
-                    "type": "on_start",
-                    "logic": "and",
-                    "conditions": [
-                        {
-                            "field": "input.query",
-                            "operator": "contains",
-                            "value": "危険",
-                        }
-                    ],
-                },
-                "actions": [
-                    {
-                        "type": "block",
-                        "priority": 1,
-                        "config": {"message": "危険なキーワードが含まれています"},
-                    }
-                ],
-                "metadata": {
-                    "description": "危険ワードチェック",
-                    "tags": ["safety"],
-                    "severity": "high",
-                },
-            }
-        ],
+        description="Guardrail definition with trigger conditions and actions",
     )
 
 
@@ -154,14 +199,16 @@ class GuardrailUpdate(BaseModel):
     Example:
         >>> update_data = GuardrailUpdate(
         ...     name="Updated Guardrail Name",
-        ...     definition={"version": "1.0", ...}
+        ...     definition=GuardrailDefinition(...)
         ... )
     """
 
     name: str | None = Field(
         None, min_length=1, max_length=255, description="Guardrail name"
     )
-    definition: dict[str, Any] | None = Field(None, description="JSONB definition")
+    definition: GuardrailDefinition | None = Field(
+        None, description="Guardrail definition"
+    )
 
 
 class GuardrailResponse(GuardrailBase):
@@ -287,6 +334,14 @@ class GuardrailListResponse(BaseModel):
 
 
 __all__ = [
+    # Guardrail Definition Models
+    "GuardrailCondition",
+    "GuardrailTrigger",
+    "GuardrailActionConfig",
+    "GuardrailAction",
+    "GuardrailMetadata",
+    "GuardrailDefinition",
+    # Guardrail CRUD Schemas
     "GuardrailBase",
     "GuardrailCreate",
     "GuardrailUpdate",

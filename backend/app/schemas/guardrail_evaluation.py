@@ -221,7 +221,7 @@ class TriggeredGuardrail(BaseModel):
     Triggered guardrail result schema.
 
     Attributes:
-        guardrail_id: UUID of the guardrail
+        guardrail_id: ID of the guardrail (UUID string or session-generated ID)
         guardrail_name: Name of the guardrail
         triggered: Whether the guardrail was triggered
         ignored: Whether the guardrail was ignored (could not be evaluated)
@@ -238,13 +238,21 @@ class TriggeredGuardrail(BaseModel):
         - error=True: Actual error occurred during guardrail processing (system error, unexpected exception)
     """
 
-    guardrail_id: UUID = Field(..., description="Guardrail UUID")
+    guardrail_id: str = Field(..., description="Guardrail ID")
     guardrail_name: str = Field(..., description="Guardrail name")
     triggered: bool = Field(..., description="Whether guardrail was triggered")
-    ignored: bool = Field(False, description="Whether guardrail was ignored (could not be evaluated)")
-    ignored_reason: str | None = Field(None, description="Reason for ignoring (if ignored)")
-    error: bool = Field(False, description="Whether an actual error occurred during evaluation")
-    error_message: str | None = Field(None, description="Error message if error occurred")
+    ignored: bool = Field(
+        False, description="Whether guardrail was ignored (could not be evaluated)"
+    )
+    ignored_reason: str | None = Field(
+        None, description="Reason for ignoring (if ignored)"
+    )
+    error: bool = Field(
+        False, description="Whether an actual error occurred during evaluation"
+    )
+    error_message: str | None = Field(
+        None, description="Error message if error occurred"
+    )
     matched_conditions: list[int] = Field(
         default_factory=list, description="Indices of matched conditions"
     )
@@ -268,7 +276,8 @@ class EvaluationMetadata(BaseModel):
 
     evaluation_time_ms: int = Field(..., description="Evaluation time in ms")
     evaluated_guardrails_count: int = Field(
-        ..., description="Number of guardrails successfully evaluated (excludes ignored)"
+        ...,
+        description="Number of guardrails successfully evaluated (excludes ignored)",
     )
     triggered_guardrails_count: int = Field(
         ..., description="Number of triggered guardrails"

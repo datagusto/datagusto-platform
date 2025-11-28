@@ -28,6 +28,11 @@ from app.models.project import ProjectActiveStatus as ProjectActiveStatus
 from app.models.project import ProjectArchive as ProjectArchive
 from app.models.project import ProjectMember as ProjectMember
 from app.models.project import ProjectOwner as ProjectOwner
+from app.models.session import Session as Session
+from app.models.session import SessionAlignmentHistory as SessionAlignmentHistory
+from app.models.session_validation_log import SessionValidationLog as SessionValidationLog
+from app.models.tool_definition import ToolDefinition as ToolDefinition
+from app.models.tool_definition import ToolDefinitionRevision as ToolDefinitionRevision
 from app.models.trace import Observation as Observation
 from app.models.trace import ObservationArchive as ObservationArchive
 from app.models.trace import Trace as Trace
@@ -81,4 +86,11 @@ __all__ = [
     "Observation",
     "TraceArchive",
     "ObservationArchive",
+    # Session models
+    "Session",
+    "SessionAlignmentHistory",
+    "SessionValidationLog",
+    # Tool Definition models
+    "ToolDefinition",
+    "ToolDefinitionRevision",
 ]

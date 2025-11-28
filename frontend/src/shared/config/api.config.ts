@@ -56,7 +56,7 @@ export const API_CONFIG = {
    * **Staging**: Set this to your staging API URL
    * **Development**: Default localhost:8000 works with typical backend setup
    */
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888',
 
   /**
    * API version prefix

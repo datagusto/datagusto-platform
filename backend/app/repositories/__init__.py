@@ -7,6 +7,13 @@ from app.repositories.organization_member_repository import (
 )
 from app.repositories.organization_owner_repository import OrganizationOwnerRepository
 from app.repositories.organization_repository import OrganizationRepository
+from app.repositories.session_alignment_history_repository import (
+    SessionAlignmentHistoryRepository,
+)
+from app.repositories.session_repository import SessionRepository
+from app.repositories.session_validation_log_repository import (
+    SessionValidationLogRepository,
+)
 from app.repositories.user_auth_repository import UserAuthRepository
 from app.repositories.user_profile_repository import UserProfileRepository
 from app.repositories.user_repository import UserRepository
@@ -22,4 +29,7 @@ __all__ = [
     "UserProfileRepository",
     "UserAuthRepository",
     "UserStatusRepository",
+    "SessionRepository",
+    "SessionAlignmentHistoryRepository",
+    "SessionValidationLogRepository",
 ]

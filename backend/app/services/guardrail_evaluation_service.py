@@ -394,9 +394,9 @@ class GuardrailEvaluationService:
             ],
             "evaluation_result": {
                 "triggered_guardrails": [
-                    tg.model_dump(mode='json') for tg in triggered_guardrails
+                    tg.model_dump(mode="json") for tg in triggered_guardrails
                 ],
-                "metadata": metadata.model_dump(mode='json'),
+                "metadata": metadata.model_dump(mode="json"),
             },
             "evaluation_time_ms": evaluation_time_ms,
         }

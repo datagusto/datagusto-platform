@@ -7,6 +7,7 @@ from app.api.v1.endpoints import (
     organizations,
     projects,
     public_guardrails,
+    safety,
     traces,
     users,
 )
@@ -26,3 +27,4 @@ api_router.include_router(traces.router, prefix="/traces", tags=["traces"])
 api_router.include_router(
     public_guardrails.router, prefix="/public/guardrails", tags=["public-guardrails"]
 )
+api_router.include_router(safety.router, prefix="/public/safety", tags=["safety"])

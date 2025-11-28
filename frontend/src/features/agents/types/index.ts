@@ -19,3 +19,14 @@ export type {
   AgentAPIKeyCreateResponse,
   AgentAPIKeyListResponse,
 } from './api-key.types';
+
+export type {
+  AlignmentSession,
+  AlignmentSessionListResponse,
+  Term,
+  ResolvedTerm,
+  ToolInvocationRule,
+  ValidationHistoryEntry,
+  InferenceResult,
+  SessionData,
+} from './alignment.types';
