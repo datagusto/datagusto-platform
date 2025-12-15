@@ -131,7 +131,7 @@ def create_llm_client(config_key: str | None = None) -> BaseChatModel:
             )
 
         elif provider == "ollama":
-            from langchain_community.chat_models import ChatOllama
+            from langchain_ollama import ChatOllama
 
             return ChatOllama(
                 model=model,

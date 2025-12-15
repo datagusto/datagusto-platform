@@ -267,7 +267,7 @@ class GuardrailEvaluationService:
             if not triggered:
                 # Not triggered
                 return TriggeredGuardrail(
-                    guardrail_id=guardrail.id,
+                    guardrail_id=str(guardrail.id),
                     guardrail_name=guardrail.name,
                     triggered=False,
                     ignored=False,
@@ -303,7 +303,7 @@ class GuardrailEvaluationService:
                     # Continue with other actions
 
             return TriggeredGuardrail(
-                guardrail_id=guardrail.id,
+                guardrail_id=str(guardrail.id),
                 guardrail_name=guardrail.name,
                 triggered=True,
                 ignored=False,
@@ -318,7 +318,7 @@ class GuardrailEvaluationService:
                 f"Guardrail '{guardrail.name}' ignored due to evaluation issue: {str(e)}"
             )
             return TriggeredGuardrail(
-                guardrail_id=guardrail.id,
+                guardrail_id=str(guardrail.id),
                 guardrail_name=guardrail.name,
                 triggered=False,
                 ignored=True,
@@ -334,7 +334,7 @@ class GuardrailEvaluationService:
                 f"Unexpected error evaluating guardrail {guardrail.name}: {str(e)}"
             )
             return TriggeredGuardrail(
-                guardrail_id=guardrail.id,
+                guardrail_id=str(guardrail.id),
                 guardrail_name=guardrail.name,
                 triggered=False,
                 ignored=False,
