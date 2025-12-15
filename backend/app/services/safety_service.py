@@ -2,14 +2,14 @@ import json
 import logging
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from langchain_core.prompts import ChatPromptTemplate
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.llm import create_llm_client, get_llm_config
+from app.core.llm import create_llm_client
 from app.repositories.session_alignment_history_repository import (
     SessionAlignmentHistoryRepository,
 )
@@ -132,9 +132,7 @@ class GeneratedGuardrail(BaseModel):
     condition: str = Field(
         description="Condition under which this tool should be invoked (natural language)"
     )
-    parameters: dict[str, Any] = Field(
-        description="Expected parameter values based on key terms"
-    )
+    parameters: dict[str, str] = Field(description="Expected parameter values (string)")
     reasoning: str = Field(description="Reasoning for why this tool should be invoked")
     guardrail_definition: GuardrailDefinition = Field(
         description="Guardrail definition with trigger conditions and actions"
@@ -149,6 +147,148 @@ class GeneratedGuardrails(BaseModel):
     )
     disallowed_tools: list[str] = Field(
         description="List of tool names that should NOT be called for this instruction"
+    )
+
+
+# =========================
+# Structured-output models for LLM (OpenAI Structured Outputs compatible)
+# =========================
+#
+# NOTE:
+# OpenAI Structured Outputs requires object schemas to explicitly set
+# `additionalProperties: false`. Free-form dicts (e.g. dict[str, Any]) and models
+# with extra="allow" will break schema validation. We therefore parse LLM output
+# into strict models below, then convert to the runtime/DB shape.
+
+
+class LLMToolParameter(BaseModel):
+    """Fixed-shape parameter representation (avoids free-form dict in schema)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(description="Parameter name")
+    value: str = Field(description="Expected parameter value (string)")
+
+
+class LLMGuardrailCondition(BaseModel):
+    """Guardrail condition for structured outputs (string-typed value)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    field: str = Field(description="Field path to evaluate (e.g., 'input.query')")
+    operator: Literal[
+        "contains",
+        "equals",
+        "regex",
+        "gt",
+        "lt",
+        "gte",
+        "lte",
+        "size_gt",
+        "size_lt",
+        "size_gte",
+        "size_lte",
+        "llm_judge",
+    ] = Field(description="Comparison operator")
+    value: str = Field(
+        description=(
+            "Comparison target as string. For numeric operators, provide a number string; "
+            "for llm_judge, provide the criteria text."
+        )
+    )
+
+
+class LLMGuardrailTrigger(BaseModel):
+    """Guardrail trigger for structured outputs."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["on_start", "on_end"] = Field(description="Evaluation timing")
+    logic: Literal["and", "or"] = Field(
+        default="and", description="Condition combination logic"
+    )
+    conditions: list[LLMGuardrailCondition] = Field(description="Conditions to evaluate")
+
+
+class LLMGuardrailActionConfig(BaseModel):
+    """Action config for structured outputs (no free-form extra fields)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    message: str | None = Field(None, description="Message to display (block/warn)")
+    allow_proceed: bool | None = Field(
+        None, description="Allow proceeding after warning"
+    )
+    drop_field: str | None = Field(None, description="Field to drop (modify)")
+    drop_item_json: str | None = Field(
+        None,
+        description=(
+            "JSON object string representing the item to drop (modify). "
+            "Example: '{\"id\": \"...\"}'."
+        ),
+    )
+
+
+class LLMGuardrailAction(BaseModel):
+    """Action for structured outputs."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["block", "warn", "modify"] = Field(description="Action type")
+    priority: int = Field(default=1, description="Execution priority (1=highest)")
+    config: LLMGuardrailActionConfig = Field(description="Action configuration")
+
+
+class LLMGuardrailMetadata(BaseModel):
+    """Metadata for structured outputs."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    description: str = Field(description="Human-readable description")
+    tags: list[str] = Field(default_factory=list, description="Tags")
+    severity: Literal["low", "medium", "high", "critical"] = Field(
+        default="medium", description="Severity level"
+    )
+
+
+class LLMGuardrailDefinition(BaseModel):
+    """Guardrail definition for structured outputs."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    version: str = Field(default="1.0", description="Definition version")
+    schema_version: str = Field(default="1", description="Schema version")
+    trigger: LLMGuardrailTrigger = Field(description="Trigger conditions")
+    actions: list[LLMGuardrailAction] = Field(description="Actions to execute")
+    metadata: LLMGuardrailMetadata | None = Field(default=None, description="Metadata")
+
+
+class LLMGeneratedGuardrail(BaseModel):
+    """LLM-facing guardrail schema (OpenAI Structured Outputs compatible)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tool_name: str = Field(description="Name of the tool to invoke")
+    condition: str = Field(description="When this tool should be invoked")
+    parameters: list[LLMToolParameter] = Field(
+        default_factory=list, description="Expected parameter values"
+    )
+    reasoning: str = Field(description="Reasoning for why this tool should be invoked")
+    guardrail_definition: LLMGuardrailDefinition = Field(
+        description="Guardrail definition with trigger and actions"
+    )
+
+
+class LLMGeneratedGuardrails(BaseModel):
+    """LLM-facing output schema (OpenAI Structured Outputs compatible)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    guardrails: list[LLMGeneratedGuardrail] = Field(
+        description="List of generated guardrails"
+    )
+    disallowed_tools: list[str] = Field(
+        description="List of tool names that should NOT be called"
     )
 
 
@@ -438,8 +578,7 @@ class SafetyService:
         past_instructions_history: str | None = None,
         previous_extraction_output: str | None = None,
     ) -> KeyTermsOutput:
-        config = get_llm_config()
-        llm = create_llm_client(config)
+        llm = create_llm_client()
 
         structured_llm = llm.with_structured_output(KeyTermsOutput)
         chain = KEYTERM_EXTRACTION_PROMPT | structured_llm
@@ -470,13 +609,13 @@ class SafetyService:
         Returns:
             GeneratedGuardrails containing guardrails and disallowed_tools
         """
-        config = get_llm_config()
-        llm = create_llm_client(config)
+        llm = create_llm_client()
 
-        structured_llm = llm.with_structured_output(GeneratedGuardrails)
+        # Use strict, OpenAI-structured-output-compatible schema for parsing.
+        structured_llm = llm.with_structured_output(LLMGeneratedGuardrails)
         chain = GUARDRAIL_GENERATION_PROMPT | structured_llm
 
-        result = await chain.ainvoke(
+        llm_result: LLMGeneratedGuardrails = await chain.ainvoke(
             {
                 "user_instruction": user_instruction,
                 "key_terms": json.dumps(
@@ -490,7 +629,76 @@ class SafetyService:
             }
         )
 
-        return result
+        # Convert to runtime schema (keeps existing API/storage shape)
+        guardrails: list[GeneratedGuardrail] = []
+        for rule in llm_result.guardrails:
+            parameters_dict: dict[str, str] = {p.name: p.value for p in rule.parameters}
+
+            # Convert structured outputs definition to runtime GuardrailDefinition
+            actions: list[dict[str, Any]] = []
+            for action in rule.guardrail_definition.actions:
+                cfg = {
+                    "message": action.config.message,
+                    "allow_proceed": action.config.allow_proceed,
+                    "drop_field": action.config.drop_field,
+                }
+
+                # Parse drop_item_json -> drop_item dict when present
+                if action.config.drop_item_json:
+                    try:
+                        cfg["drop_item"] = json.loads(action.config.drop_item_json)
+                    except Exception:
+                        # Keep it absent if parsing fails; runtime validator can decide.
+                        cfg["drop_item"] = None
+
+                actions.append(
+                    {
+                        "type": action.type,
+                        "priority": action.priority,
+                        "config": {k: v for k, v in cfg.items() if v is not None},
+                    }
+                )
+
+            definition_dict: dict[str, Any] = {
+                "version": rule.guardrail_definition.version,
+                "schema_version": rule.guardrail_definition.schema_version,
+                "trigger": {
+                    "type": rule.guardrail_definition.trigger.type,
+                    "logic": rule.guardrail_definition.trigger.logic,
+                    "conditions": [
+                        {
+                            "field": c.field,
+                            "operator": c.operator,
+                            "value": c.value,
+                        }
+                        for c in rule.guardrail_definition.trigger.conditions
+                    ],
+                },
+                "actions": actions,
+                "metadata": (
+                    {
+                        "description": rule.guardrail_definition.metadata.description,
+                        "tags": rule.guardrail_definition.metadata.tags,
+                        "severity": rule.guardrail_definition.metadata.severity,
+                    }
+                    if rule.guardrail_definition.metadata
+                    else None
+                ),
+            }
+
+            guardrails.append(
+                GeneratedGuardrail(
+                    tool_name=rule.tool_name,
+                    condition=rule.condition,
+                    parameters=parameters_dict,
+                    reasoning=rule.reasoning,
+                    guardrail_definition=GuardrailDefinition(**definition_dict),
+                )
+            )
+
+        return GeneratedGuardrails(
+            guardrails=guardrails, disallowed_tools=llm_result.disallowed_tools
+        )
 
     async def validate_session_guardrails(
         self,

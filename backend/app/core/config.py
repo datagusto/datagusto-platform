@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     LLM_MODEL: str = ""
     LLM_API_KEY: str = ""
     LLM_ENDPOINT: str = ""
+    # Max tokens for LLM responses (provider-dependent upper bound).
+    # Can be overridden via environment variable: LLM_MAX_TOKENS
+    LLM_MAX_TOKENS: int = 32000
 
     # Model configuration
     model_config = SettingsConfigDict(

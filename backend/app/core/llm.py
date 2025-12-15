@@ -66,7 +66,7 @@ def create_llm_client(config_key: str | None = None) -> BaseChatModel:
         model = config["model"]
         api_key = config["api_key"]
         endpoint = config["endpoint"]
-        max_tokens = config.get("max_tokens", 64000)
+        max_tokens = settings.LLM_MAX_TOKENS
 
         if provider == "openai":
             from langchain_openai import ChatOpenAI
@@ -95,6 +95,7 @@ def create_llm_client(config_key: str | None = None) -> BaseChatModel:
                 model=model,
                 base_url=endpoint,
                 temperature=0.0,
+                num_predict=max_tokens,
             )
 
         else:

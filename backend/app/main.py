@@ -24,6 +24,14 @@ app.add_middleware(
 )
 
 
+@app.get("/health")
+async def health_check():
+    """
+    Health check endpoint for container orchestration.
+    """
+    return {"status": "ok"}
+
+
 # Organization context middleware for multi-tenant support
 @app.middleware("http")
 async def organization_context_middleware(request: Request, call_next):
