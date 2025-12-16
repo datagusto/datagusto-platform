@@ -226,6 +226,7 @@ async def validate_session(
         service = SafetyService(db)
         (
             should_proceed,
+            is_registered_tool,
             triggered_guardrails,
             metadata,
         ) = await service.validate_session_guardrails(
@@ -242,6 +243,7 @@ async def validate_session(
 
         return {
             "should_proceed": should_proceed,
+            "is_registered_tool": is_registered_tool,
             "triggered_guardrails": [
                 tg.model_dump(mode="json") for tg in triggered_guardrails
             ],

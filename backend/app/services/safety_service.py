@@ -302,6 +302,7 @@ GUARDRAIL_GENERATION_PROMPT = ChatPromptTemplate.from_messages(
 1. User Instruction: What the user wants to accomplish
 2. Key Terms: Extracted terms with user-provided context
 3. Available Tools: List of tools that can be invoked
+4. Previous Guardrails (optional): Guardrails generated in earlier alignment iterations
 
 ## YOUR TASK:
 Analyze the user instruction and generate guardrails that:
@@ -415,6 +416,21 @@ Choose the appropriate trigger timing based on what can be validated:
 - actions: What to do when conditions are met (block, warn, or modify)
 - metadata.severity: Risk level ("low", "medium", "high", "critical")
 
+## ITERATIVE PROCESSING (when Previous Guardrails exist):
+
+When previous guardrails are provided, you must perform INCREMENTAL updates rather than generating from scratch:
+
+1. **PRESERVE**: Keep existing guardrails that are still relevant to the current and past user instructions
+2. **ADD**: Create new guardrails for newly identified requirements from the latest instruction
+3. **MODIFY**: Update existing guardrails if the new instruction provides clarification or changes constraints
+4. **REMOVE**: Only remove guardrails that are explicitly contradicted by the new instruction or no longer applicable
+
+**Critical Rules for Iterative Processing:**
+- Do NOT discard guardrails just because they weren't mentioned in the latest instruction
+- Guardrails from previous iterations remain valid unless explicitly superseded
+- When in doubt, KEEP the existing guardrail
+- Treat Previous Guardrails as the baseline and apply changes incrementally
+
 ## TOOL CATEGORIZATION:
 
 For each available tool, categorize it as one of:
@@ -427,6 +443,10 @@ Output:
 - `disallowed_tools`: List of tool names in category 3 (Disallowed)
 
 Category 2 tools (Allowed without guardrails) are implicitly all tools not in either list.
+
+**Note on disallowed_tools in Iterative Mode:**
+- Preserve disallowed_tools from previous iterations unless the new instruction explicitly allows those tools
+- Add new disallowed_tools if the new instruction introduces new restrictions
 
 ## GUIDELINES:
 - Generate guardrails for tools that need validation (category 1)
@@ -449,7 +469,10 @@ Key Terms with Context:
 {key_terms}
 
 Available Tools:
-{available_tools}""",
+{available_tools}
+
+Previous Guardrails (from earlier alignment iterations):
+{previous_guardrails}""",
         ),
     ]
 )
@@ -507,9 +530,10 @@ class SafetyService:
             UUID(session_id)
         )
 
-        # Extract past instructions and previous extraction output
+        # Extract past instructions, previous extraction output, and previous guardrails
         past_instructions_history = None
         previous_extraction_output = None
+        previous_guardrails = None
 
         if latest_alignment_history:
             past_instructions_history = latest_alignment_history.get(
@@ -518,6 +542,15 @@ class SafetyService:
             previous_extraction_output = latest_alignment_history.get(
                 "previous_extraction_output"
             )
+            # Extract previous guardrails from alignment_result
+            alignment_result = latest_alignment_history.get("alignment_result")
+            if alignment_result:
+                previous_guardrails = {
+                    "tool_invocation_rules": alignment_result.get(
+                        "tool_invocation_rules", []
+                    ),
+                    "disallowed_tools": alignment_result.get("disallowed_tools", []),
+                }
 
         # Extract key terms in the user instruction
         key_terms_output = await self.extract_key_terms_in_user_instruction(
@@ -531,11 +564,13 @@ class SafetyService:
         tools_data, revision_id = await tool_service.get_latest_revision(agent_uuid)
 
         # Generate guardrails (tool invocation rules)
+        # Pass previous_guardrails for incremental updates in subsequent alignments
         if tools_data:
             generated_guardrails_result = await self.generate_guardrails(
                 user_instruction=user_instruction,
                 key_terms=key_terms_output,
                 tools_data=tools_data,
+                previous_guardrails=previous_guardrails,
             )
         else:
             generated_guardrails_result = None
@@ -597,14 +632,21 @@ class SafetyService:
         user_instruction: str,
         key_terms: KeyTermsOutput,
         tools_data: dict[str, Any],
+        previous_guardrails: dict[str, Any] | None = None,
     ) -> GeneratedGuardrails:
         """
         Generate guardrails based on user instruction.
+
+        When previous_guardrails is provided (from earlier alignment iterations),
+        the LLM will perform incremental updates: preserving relevant guardrails,
+        adding new ones, modifying existing ones, and removing obsolete ones.
 
         Args:
             user_instruction: User's instruction text
             key_terms: Extracted key terms with context
             tools_data: Tool definitions data from database
+            previous_guardrails: Previous alignment result containing
+                tool_invocation_rules and disallowed_tools (optional)
 
         Returns:
             GeneratedGuardrails containing guardrails and disallowed_tools
@@ -614,6 +656,12 @@ class SafetyService:
         # Use strict, OpenAI-structured-output-compatible schema for parsing.
         structured_llm = llm.with_structured_output(LLMGeneratedGuardrails)
         chain = GUARDRAIL_GENERATION_PROMPT | structured_llm
+
+        # Format previous guardrails for the prompt
+        if previous_guardrails:
+            previous_guardrails_str = json.dumps(previous_guardrails, ensure_ascii=False)
+        else:
+            previous_guardrails_str = "None (this is the first alignment iteration)"
 
         llm_result: LLMGeneratedGuardrails = await chain.ainvoke(
             {
@@ -625,6 +673,7 @@ class SafetyService:
                     ensure_ascii=False,
                 ),
                 "available_tools": json.dumps(tools_data, ensure_ascii=False),
+                "previous_guardrails": previous_guardrails_str,
                 "date": datetime.now().strftime("%Y-%m-%d"),
             }
         )
@@ -711,7 +760,7 @@ class SafetyService:
         process_type: str,
         timing: str,
         context: dict[str, Any],
-    ) -> tuple[bool, list[TriggeredGuardrail], dict[str, Any]]:
+    ) -> tuple[bool, bool, list[TriggeredGuardrail], dict[str, Any]]:
         """
         Validate tool/LLM invocation against session-generated guardrails.
 
@@ -727,10 +776,10 @@ class SafetyService:
             context: Evaluation context data
 
         Returns:
-            Tuple of (should_proceed, triggered_guardrails, metadata)
+            Tuple of (should_proceed, is_registered_tool, triggered_guardrails, metadata)
 
         Example:
-            >>> should_proceed, triggered, metadata = await service.validate_session_guardrails(
+            >>> should_proceed, is_registered, triggered, metadata = await service.validate_session_guardrails(
             ...     session_id, agent_id, project_id, org_id, None,
             ...     "get_exam_results", "tool", "on_start",
             ...     {"input": {"semester": "spring"}}
@@ -745,10 +794,21 @@ class SafetyService:
 
         # Get guardrails and disallowed_tools from session
         guardrails, disallowed_tools = await self._get_guardrails_from_session(
-            session_id, timing
+            session_id, timing, process_name
         )
 
-        # Check disallowed_tools first
+        # Determine if this tool is registered (from tool_definitions, not alignment result)
+        tool_service = ToolDefinitionService(self.db)
+        tools_data, _ = await tool_service.get_latest_revision(agent_id)
+        if tools_data and "tools" in tools_data:
+            registered_tools = {
+                tool.get("name") for tool in tools_data["tools"] if tool.get("name")
+            }
+        else:
+            registered_tools = set()
+        is_registered_tool = process_name in registered_tools
+
+        # Check disallowed_tools first (only for registered tools)
         if process_name in disallowed_tools:
             logger.warning(
                 f"Tool '{process_name}' is in disallowed_tools for session {session_id}"
@@ -790,18 +850,45 @@ class SafetyService:
                 timing=timing,
                 context=context,
                 should_proceed=False,
+                is_registered_tool=True,  # disallowed_tools are registered
                 triggered_guardrails=[blocked_guardrail],
                 metadata=metadata,
             )
 
-            return False, [blocked_guardrail], metadata
+            return False, True, [blocked_guardrail], metadata
 
+        # No guardrails for this tool - proceed (could be registered or unregistered)
         if not guardrails:
-            logger.info(
-                f"No guardrails found for session {session_id} with timing={timing}"
+            evaluation_time_ms = int((time.time() - start_time) * 1000)
+            metadata = {"evaluated_guardrails_count": 0, "evaluation_time_ms": evaluation_time_ms}
+
+            if is_registered_tool:
+                logger.info(
+                    f"No guardrails found for registered tool '{process_name}' "
+                    f"in session {session_id} with timing={timing}"
+                )
+            else:
+                logger.info(
+                    f"Unregistered tool '{process_name}' in session {session_id}"
+                )
+
+            await self._save_validation_log(
+                session_id=session_id,
+                agent_id=agent_id,
+                project_id=project_id,
+                organization_id=organization_id,
+                trace_id=trace_id,
+                process_name=process_name,
+                process_type=process_type,
+                timing=timing,
+                context=context,
+                should_proceed=True,
+                is_registered_tool=is_registered_tool,
+                triggered_guardrails=[],
+                metadata=metadata,
             )
-            # No guardrails to evaluate - proceed
-            return True, [], {"evaluated_guardrails_count": 0}
+
+            return True, is_registered_tool, [], metadata
 
         triggered_guardrails_list: list[TriggeredGuardrail] = []
         guardrail_definitions: dict[str, dict[str, Any]] = {}
@@ -854,19 +941,21 @@ class SafetyService:
             timing=timing,
             context=context,
             should_proceed=should_proceed,
+            is_registered_tool=is_registered_tool,
             triggered_guardrails=triggered_guardrails_list,
             metadata=metadata,
         )
 
         logger.info(
             f"Session validation completed for {session_id}: should_proceed={should_proceed}, "
+            f"is_registered_tool={is_registered_tool}, "
             f"triggered={triggered_count}/{len(guardrails)}, time={evaluation_time_ms}ms"
         )
 
-        return should_proceed, triggered_guardrails_list, metadata
+        return should_proceed, is_registered_tool, triggered_guardrails_list, metadata
 
     async def _get_guardrails_from_session(
-        self, session_id: UUID, timing: str
+        self, session_id: UUID, timing: str, process_name: str
     ) -> tuple[list[dict[str, Any]], list[str]]:
         """
         Get guardrails and disallowed_tools from session alignment history.
@@ -874,13 +963,16 @@ class SafetyService:
         Args:
             session_id: Session UUID
             timing: Evaluation timing (on_start or on_end)
+            process_name: Name of the process being evaluated (tool name)
 
         Returns:
             Tuple of (filtered_guardrails, disallowed_tools)
+            - filtered_guardrails: Guardrails matching timing AND tool_name
+            - disallowed_tools: List of disallowed tool names
 
         Example:
             >>> guardrails, disallowed = await service._get_guardrails_from_session(
-            ...     session_id, "on_start"
+            ...     session_id, "on_start", "get_user_files"
             ... )
         """
         # Get latest alignment history for this session
@@ -897,19 +989,21 @@ class SafetyService:
         tool_invocation_rules = alignment_result.get("tool_invocation_rules", [])
         disallowed_tools = alignment_result.get("disallowed_tools", [])
 
-        # Filter by timing
+        # Filter by timing AND tool_name
         filtered_guardrails = []
         for rule in tool_invocation_rules:
+            tool_name = rule.get("tool_name")
             guardrail_def = rule.get("guardrail_definition", {})
             trigger = guardrail_def.get("trigger", {})
             trigger_type = trigger.get("type")
 
-            if trigger_type == timing:
+            if trigger_type == timing and tool_name == process_name:
                 filtered_guardrails.append(rule)
 
         logger.debug(
             f"Found {len(filtered_guardrails)} guardrails for session {session_id} "
-            f"with timing={timing}, disallowed_tools={disallowed_tools}"
+            f"with timing={timing}, process_name={process_name}, "
+            f"disallowed_tools={disallowed_tools}"
         )
 
         return filtered_guardrails, disallowed_tools
@@ -1032,6 +1126,7 @@ class SafetyService:
         timing: str,
         context: dict[str, Any],
         should_proceed: bool,
+        is_registered_tool: bool,
         triggered_guardrails: list[TriggeredGuardrail],
         metadata: dict[str, Any],
     ) -> None:
@@ -1049,6 +1144,7 @@ class SafetyService:
             timing: Evaluation timing
             context: Evaluation context
             should_proceed: Final decision
+            is_registered_tool: Whether the tool is registered in tool_definitions
             triggered_guardrails: List of triggered guardrails
             metadata: Evaluation metadata
         """
@@ -1057,6 +1153,7 @@ class SafetyService:
             "process_type": process_type,
             "timing": timing,
             "should_proceed": should_proceed,
+            "is_registered_tool": is_registered_tool,
             "request_context": context,
             "evaluation_result": {
                 "triggered_guardrails": [

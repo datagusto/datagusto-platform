@@ -354,6 +354,9 @@ class ValidationHistoryEntryResponse(BaseModel):
         ..., description="Process type (tool/llm/retrieval/agent)"
     )
     should_proceed: bool = Field(default=True, description="Whether to proceed")
+    is_registered_tool: bool = Field(
+        default=True, description="Whether the tool is registered in tool_definitions"
+    )
     request_context: dict[str, Any] = Field(
         default_factory=dict, description="Request context with input/output"
     )

@@ -415,9 +415,7 @@ class SessionService:
 
             # Check for invalid validations (should_proceed = False)
             has_invalid_validations = any(
-                not (log.log_data or {})
-                .get("validation_result", {})
-                .get("should_proceed", True)
+                not (log.log_data or {}).get("should_proceed", True)
                 for log in validation_logs
             )
 
@@ -558,6 +556,7 @@ class SessionService:
                     "process_name": log_data.get("process_name", ""),
                     "process_type": log_data.get("process_type", ""),
                     "should_proceed": log_data.get("should_proceed", True),
+                    "is_registered_tool": log_data.get("is_registered_tool", True),
                     "request_context": log_data.get("request_context", {}),
                     "evaluation_result": log_data.get("evaluation_result", {}),
                 }

@@ -362,6 +362,7 @@ export interface ValidationHistoryEntry {
   process_name: string;
   process_type: string;
   should_proceed: boolean;
+  is_registered_tool: boolean;
   request_context: RequestContext;
   evaluation_result: EvaluationResult;
 }

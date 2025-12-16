@@ -491,13 +491,17 @@ export default function SessionDetailPage() {
                             <Badge variant="default">
                               {entry.process_type}
                             </Badge>
-                            <Badge
-                              variant={
-                                entry.should_proceed ? 'success' : 'danger'
-                              }
-                            >
-                              {entry.should_proceed ? 'Approved' : 'Blocked'}
-                            </Badge>
+                            {entry.is_registered_tool === false ? (
+                              <Badge variant="warning">Unknown</Badge>
+                            ) : (
+                              <Badge
+                                variant={
+                                  entry.should_proceed ? 'success' : 'danger'
+                                }
+                              >
+                                {entry.should_proceed ? 'Approved' : 'Blocked'}
+                              </Badge>
+                            )}
                           </div>
                         </div>
 
@@ -565,6 +569,14 @@ export default function SessionDetailPage() {
                                 )
                               )}
                             </div>
+                          </div>
+                        )}
+
+                        {entry.is_registered_tool === false && (
+                          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                            ⚠️ This tool is not registered. Please register it
+                            via POST /tools/register to enable guardrail
+                            evaluation.
                           </div>
                         )}
 
