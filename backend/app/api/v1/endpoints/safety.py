@@ -28,6 +28,27 @@ from app.services.tool_definition_service import ToolDefinitionService
 router = APIRouter()
 
 
+def _extract_tool_name(recipient_name: str) -> str:
+    """
+    Extract tool name from Dify recipient_name format.
+
+    Args:
+        recipient_name: Format "functions.{tool_name}" or just "{tool_name}"
+
+    Returns:
+        Extracted tool name
+
+    Example:
+        >>> _extract_tool_name("functions.tavily_search")
+        'tavily_search'
+        >>> _extract_tool_name("my_tool")
+        'my_tool'
+    """
+    if recipient_name.startswith("functions."):
+        return recipient_name[len("functions.") :]
+    return recipient_name
+
+
 @router.post("/tools/register", response_model=ToolRegistrationResponse)
 async def register_tools(
     request: ToolRegistrationRequest,
@@ -189,11 +210,9 @@ async def validate_session(
         ...     "process_name": "get_exam_results",
         ...     "process_type": "tool",
         ...     "timing": "on_start",
-        ...     "context": {
-        ...         "input": {
-        ...             "semester": "spring",
-        ...             "year": 2024
-        ...         }
+        ...     "input": {
+        ...         "semester": "spring",
+        ...         "year": 2024
         ...     }
         ... }
         >>> # Response:
@@ -222,8 +241,86 @@ async def validate_session(
         # Convert session_id from string to UUID
         session_id = UUID(request.session_id)
 
-        # Create service and validate
+        # Create service
         service = SafetyService(db)
+
+        # Handle Dify multi_tool_use.parallel
+        if request.process_name == "multi_tool_use.parallel":
+            tool_uses = request.input.get("tool_uses", [])
+            if not tool_uses:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="multi_tool_use.parallel requires 'input.tool_uses' array",
+                )
+
+            # Aggregate results from all tool validations
+            all_should_proceed = True
+            all_is_registered = True
+            all_triggered_guardrails: list[Any] = []
+            total_evaluation_time_ms = 0
+            total_evaluated_count = 0
+            total_triggered_count = 0
+
+            for tool_use in tool_uses:
+                recipient_name = tool_use.get("recipient_name", "")
+                parameters = tool_use.get("parameters", {})
+
+                # Extract tool name from recipient_name
+                tool_name = _extract_tool_name(recipient_name)
+
+                # Build context for this tool
+                tool_context: dict[str, Any] = {"input": parameters}
+
+                # Validate single tool
+                (
+                    should_proceed,
+                    is_registered_tool,
+                    triggered_guardrails,
+                    metadata,
+                ) = await service.validate_session_guardrails(
+                    session_id=session_id,
+                    agent_id=agent_id,
+                    project_id=project_id,
+                    organization_id=organization_id,
+                    trace_id=request.trace_id,
+                    process_name=tool_name,
+                    process_type=request.process_type.value,
+                    timing=request.timing.value,
+                    context=tool_context,
+                )
+
+                # Aggregate results
+                if not should_proceed:
+                    all_should_proceed = False
+                if not is_registered_tool:
+                    all_is_registered = False
+                all_triggered_guardrails.extend(triggered_guardrails)
+                total_evaluation_time_ms += metadata.get("evaluation_time_ms", 0)
+                total_evaluated_count += metadata.get("evaluated_guardrails_count", 0)
+                total_triggered_count += metadata.get("triggered_guardrails_count", 0)
+
+            return {
+                "should_proceed": all_should_proceed,
+                "is_registered_tool": all_is_registered,
+                "triggered_guardrails": [
+                    tg.model_dump(mode="json") for tg in all_triggered_guardrails
+                ],
+                "metadata": {
+                    "evaluation_time_ms": total_evaluation_time_ms,
+                    "evaluated_guardrails_count": total_evaluated_count,
+                    "triggered_guardrails_count": total_triggered_count,
+                },
+            }
+
+        # Standard single tool validation
+        # Build internal context structure from flattened input/output
+        context: dict[str, Any] = {"input": request.input}
+        if request.output is not None:
+            context["output"] = request.output
+
+        # Extract tool name (strip "functions." prefix if present)
+        process_name = _extract_tool_name(request.process_name)
+
         (
             should_proceed,
             is_registered_tool,
@@ -235,10 +332,10 @@ async def validate_session(
             project_id=project_id,
             organization_id=organization_id,
             trace_id=request.trace_id,
-            process_name=request.process_name,
+            process_name=process_name,
             process_type=request.process_type.value,
             timing=request.timing.value,
-            context=request.context,
+            context=context,
         )
 
         return {

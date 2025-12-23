@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from app.schemas.guardrail_evaluation import ProcessType, Timing
 
@@ -53,15 +53,26 @@ class SessionValidationRequest(BaseModel):
         process_name: Name of the process being evaluated
         process_type: Type of process (llm, tool, retrieval, agent)
         timing: When to evaluate - on_start or on_end
-        context: Evaluation context data containing input/output
+        input: Tool/process input parameters (required)
+        output: Tool/process output data (optional, used for on_end timing)
 
     Example:
+        >>> # on_start request
         >>> request = SessionValidationRequest(
         ...     session_id="123e4567-e89b-12d3-a456-426614174000",
         ...     process_name="get_exam_results",
         ...     process_type=ProcessType.TOOL,
         ...     timing=Timing.ON_START,
-        ...     context={"input": {"semester": "spring", "year": 2024}}
+        ...     input={"semester": "spring", "year": 2024}
+        ... )
+        >>> # on_end request
+        >>> request = SessionValidationRequest(
+        ...     session_id="123e4567-e89b-12d3-a456-426614174000",
+        ...     process_name="get_exam_results",
+        ...     process_type=ProcessType.TOOL,
+        ...     timing=Timing.ON_END,
+        ...     input={"semester": "spring", "year": 2024},
+        ...     output={"results": [{"student_id": "001", "score": 85}]}
         ... )
     """
 
@@ -79,16 +90,9 @@ class SessionValidationRequest(BaseModel):
         ..., description="Type of process (llm, tool, retrieval, agent)"
     )
     timing: Timing = Field(..., description="When to evaluate - on_start or on_end")
-    context: dict[str, Any] = Field(
-        ..., description="Evaluation context data containing input/output"
+    input: dict[str, Any] = Field(
+        ..., description="Tool/process input parameters"
     )
-
-    @field_validator("context")
-    @classmethod
-    def validate_context_has_input(cls, v: dict[str, Any]) -> dict[str, Any]:
-        """Validate that context has required 'input' key."""
-        if "input" not in v:
-            raise ValueError("context must contain 'input' key")
-        if not isinstance(v["input"], dict):
-            raise ValueError("context.input must be a dictionary")
-        return v
+    output: dict[str, Any] | None = Field(
+        None, description="Tool/process output data (used for on_end timing)"
+    )
